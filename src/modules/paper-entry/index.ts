@@ -1,0 +1,11 @@
+export * from './models/paper.repository';
+export * from './models/paper-forms.config';
+export * from './controllers/paper.actions';
+export * from './views/shared-paper-entry.view';
+export * from './views/shared-paper-forms.view';
+export * from './views/printable-visit-sheet';
+export * from './views/printable-queue-sheet';
+export * from './views/printable-manager-sheet';
+export * from './views/printable-cash-count-sheet';
+export { SharedPaperFormsView as PaperFallbackFormsView } from './views/shared-paper-forms.view';
+export { SharedPaperEntryView as PaperFallbackEntryView } from './views/shared-paper-entry.view';

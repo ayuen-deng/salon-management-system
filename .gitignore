@@ -1,0 +1,45 @@
+# Dependencies & Environment
+node_modules
+/.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Testing
+/coverage
+/test-results/
+/playwright-report/
+
+# Next.js
+/.next/
+/.next-phase1*/
+/.next-phase*/
+/out/
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.pem
+
+# Local env files
+.env*
+!.env.example
+
+# QA artifacts
+/qa-artifacts/
+/.local/backups/
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Local server output
+*.log

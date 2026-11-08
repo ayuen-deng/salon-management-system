@@ -1,0 +1,32 @@
+Audience,Category,Subcategory,Service Name,Variant Name,Price UGX,Min Price UGX,Max Price UGX,Expected Minutes
+men,Barbering,Haircuts,Regular Haircut,Standard Cut,6000,6000,10000,20
+men,Barbering,Haircuts,Fade Haircut,Low/Mid/High Fade,8000,8000,12000,25
+men,Barbering,Beard,Haircut & Beard,Cut with Beard Grooming,10000,10000,15000,30
+men,Barbering,Beard,Beard Trim,Beard Shape & Oil,5000,5000,8000,15
+men,Barbering,Shave,Clean Head/Face Shave,Razor Shave & Aftershave,7000,7000,10000,20
+men,Barbering,Kids,Kids Haircut,Boys School Cut,5000,5000,8000,20
+women,Braids,Plaits,Knotless Braids,Medium Knotless,80000,70000,110000,180
+women,Braids,Plaits,Box Braids,Classic Box Braids,70000,60000,100000,150
+women,Braids,Cornrows,Cornrows,Lines with Extensions,40000,35000,60000,90
+women,Weaves & Wigs,Installation,Wig Installation,Custom Fit & Styling,50000,45000,70000,60
+women,Hair Care,Chemical,Relaxer,Touch-Up & Wash,35000,30000,50000,60
+women,Styling,Natural,Natural Hair Styling,Flat Twists & Updo,30000,25000,45000,45
+women,Styling,Blow-dry,Blow-dry & Styling,Silk Press & Trim,35000,30000,50000,40
+both,Hair Care,Wash,Hair Wash,Shampoo & Scalp Rinse,10000,10000,15000,20
+both,Hair Care,Treatments,Deep-Conditioning Treatment,Moisture Infusion,25000,20000,35000,30
+both,Hair Care,Treatments,Scalp Treatment,Dandruff & Oil Balance,30000,25000,40000,35
+both,Hair Care,Colour,Hair Colouring,Full Coverage Tint,45000,40000,65000,60
+both,Massage,Body,Full Body Massage,Swedish Relaxing (60 min),60000,50000,80000,60
+both,Massage,Body,Half Body Massage,Back & Shoulders (30 min),35000,30000,50000,30
+both,Nails & Spa,Manicure,Manicure,Classic Nail Grooming,15000,12000,20000,30
+both,Nails & Spa,Pedicure,Pedicure,Foot Scrub & Polish,20000,18000,30000,40
+both,Skin,Facial,Facial Treatment,Deep Cleanse & Steam,40000,35000,55000,45
+women,Makeup,Bridal,Bridal Makeup,Full Glam with Lashes,120000,100000,150000,90
+women,Makeup,Traditional,Kwanjula Introduction Makeup,Ceremonial Glam,90000,80000,120000,75
+women,Makeup,Glam,Evening / Party Makeup,Soft Glam,50000,40000,70000,45
+women,Makeup,Natural,Day / Natural Makeup,Clean Fresh Glow,35000,30000,45000,35
+women,Makeup,Photography,Photoshoot Makeup,Studio HD Matte,70000,60000,90000,60
+both,Makeup,Eyes,Eyebrow Shaping,Threading & Razor Tint,7000,5000,10000,15
+women,Makeup,Lashes,Eyelash Extensions,Semi-Permanent Set,45000,40000,60000,60
+women,Makeup,Lashes,Strip Lash Application,Lash Strip Fit,10000,8000,15000,15
+women,Makeup,Traditional,Gele Tying,Traditional Headwrap,15000,10000,20000,20
