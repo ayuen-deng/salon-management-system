@@ -32,7 +32,7 @@ export function ManagerDevicesView() {
     }
     setLoading(false);
   };
-  useSalonLiveRefresh(() => { void loadDevices(); });
+  useSalonLiveRefresh(() => { void loadDevices(); }, true, ['device', 'app_user']);
 
 
   useEffect(() => {

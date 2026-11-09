@@ -33,7 +33,7 @@ export function ManagerApprovalsView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadRequests(); });
+  useSalonLiveRefresh(() => { void loadRequests(); }, true, ['approval_request', 'app_user']);
 
 
   async function handleApprove(req: ApprovalRequestItem) {

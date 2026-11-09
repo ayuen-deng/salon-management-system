@@ -31,7 +31,7 @@ export function ManagerCatalogueView() {
     }
     setLoading(false);
   };
-  useSalonLiveRefresh(() => { void loadCatalogue(); });
+  useSalonLiveRefresh(() => { void loadCatalogue(); }, true, ['service', 'service_variant']);
 
 
   useEffect(() => {

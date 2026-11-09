@@ -27,7 +27,7 @@ export function ManagerRulesView() {
     }
     setLoading(false);
   };
-  useSalonLiveRefresh(() => { void loadRules(); });
+  useSalonLiveRefresh(() => { void loadRules(); }, true, ['discount_reason']);
 
 
   useEffect(() => {
