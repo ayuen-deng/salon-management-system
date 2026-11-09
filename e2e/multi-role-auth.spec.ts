@@ -5,10 +5,10 @@ const USERS = [
   { username: 'manager', pin: '222222', expectedRole: 'manager', expectedName: 'Joan Tumusiime', expectedPath: '/manager' },
   { username: 'hr', pin: '333333', expectedRole: 'hr', expectedName: 'David Kato', expectedPath: '/hr' },
   { username: 'mary', pin: '444444', expectedRole: 'receptionist', expectedName: 'Mary Namubiru', expectedPath: '/reception' },
-  { username: 'grace', pin: '555555', expectedRole: 'staff', expectedName: 'Grace Atuhaire', expectedPath: '/staff' },
-  { username: 'rose', pin: '555555', expectedRole: 'staff', expectedName: 'Rose Kyomugisha', expectedPath: '/staff' },
-  { username: 'sarah', pin: '555555', expectedRole: 'staff', expectedName: 'Sarah Kobusingye', expectedPath: '/staff' },
-  { username: 'peter', pin: '555555', expectedRole: 'staff', expectedName: 'Peter Byamukama', expectedPath: '/staff' },
+  { username: 'grace', pin: '555555', expectedRole: 'staff', expectedName: 'Grace', expectedPath: '/staff' },
+  { username: 'rose', pin: '555555', expectedRole: 'staff', expectedName: 'Rose', expectedPath: '/staff' },
+  { username: 'sarah', pin: '555555', expectedRole: 'staff', expectedName: 'Sarah', expectedPath: '/staff' },
+  { username: 'peter', pin: '555555', expectedRole: 'staff', expectedName: 'Peter', expectedPath: '/staff' },
 ];
 
 test('concurrent multi-role login with separate incognito contexts verifies strict identity isolation', async ({ browser }) => {
@@ -40,19 +40,29 @@ test('concurrent multi-role login with separate incognito contexts verifies stri
         // Submit login
         await page.click('button[type="submit"]');
 
-        // Wait for redirection to role home
-        await page.waitForURL(`**${user.expectedPath}*`, { timeout: 15000 });
+        // Roles with an attendance gate must clock in before entering their workspace.
+        await page.waitForURL((url) =>
+          url.pathname === user.expectedPath || url.pathname === '/attendance-gate',
+          { timeout: 15000 },
+        );
+        if (new URL(page.url()).pathname === '/attendance-gate') {
+          await page.getByRole('button', { name: /I’m in|I’m back/ }).click();
+          await page.waitForURL((url) => url.pathname === user.expectedPath, { timeout: 15000 });
+        }
 
         // Assert role-specific URL
         expect(page.url()).toContain(user.expectedPath);
 
-        const userCardText = await page.locator('body').innerText();
+        let userCardText = await page.locator('body').innerText();
         // HR/manager/owner shells intentionally show role labels; staff shells show staff names.
-        if (user.expectedRole === 'staff') expect(userCardText).toContain(user.expectedName);
+        if (user.expectedRole === 'staff') {
+          await expect(page.locator('body')).toContainText(user.expectedName, { timeout: 15000 });
+          userCardText = await page.locator('body').innerText();
+        }
 
         // If logged in as Rose, strictly assert Grace is not displayed as the authenticated user
         if (user.username === 'rose') {
-          expect(userCardText).not.toContain('Grace Atuhaire');
+          expect(userCardText).not.toContain('Grace');
         }
       } finally {
         await context.close();

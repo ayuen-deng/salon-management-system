@@ -1,16 +1,19 @@
 # Handoff Status
 
-## Current phase
+## Current state (2026-11-09)
 
-Phase 5: Shared HR and Owner Staff Performance is implemented locally and ready for review.
+The dedicated Supabase project `mzuri-staging` (`afruqwkujvweojbuqjeq`) is provisioned separately from the salon production project. All 34 local migrations are present in its remote migration ledger, and the three PIN Edge Functions are active there. Staging configuration and database credentials are kept in the ignored `.env.staging.local` file.
 
-## Review state
+The staging database passed all 58 pgTAP assertions across nine SQL files. Supabase's remote test container cannot access the `extensions` schema, so the same rollback-only files were executed directly against the explicitly selected staging database; no public grants were added. A multi-role browser login/isolation test passed, as did the manager pairing and synthetic unpaid kiosk-order flow. The staging business day and test order/device are deliberate test data.
 
-- Phase 5 implementation and database migration are local. Verification results are recorded in the Phase 5 section of `docs/VERIFICATION.md`.
-- `npm run build` passed with 66 routes; the server at `http://localhost:3000` was restarted and `/api/health` returned HTTP 200 with database connected. The app reports demo mode.
-- Migration `20261106000004_audit_log_scope_columns.sql` was applied in Supabase SQL Editor; the HR Leave page no longer shows the missing-column alert after refresh. Migration status for versions 1–3 has not been rechecked, so staff leave and notification database behavior is not yet confirmed live.
-- Screenshot follow-up: HR policy/audit writes require `audit_log.organization_id` and `audit_log.location_id`. The migration adds those fields and populates future inserts while preserving existing append-only rows.
-- Database pgTAP and user-authenticated browser verification were not run in this environment.
-- Rejection notices tell the staff member to contact HR. The app does not collect or store a free-text rejection reason.
-- Phase 4 was continued at the user's direction. Phase 5 adds a server-only shared performance report used by HR and Owner Staff. Its migration and pgTAP tests still need application/execution against a reviewed database; older migrations 1–3 also remain unverified remotely.
-- No commit or push has been made. Stop at Phase 5 review until the user approves continuing.
+The app built successfully with all 73 routes and `/api/health` reported a connected staging database. Lint, TypeScript, architecture, loading-boundary, audit-registry, and design-token checks passed. Vitest passed all 46 tests when run outside the Windows sandbox; the sandbox itself blocks the Vitest worker's `realpath` call with `EPERM`.
+
+## Remaining performance work
+
+The five-phase performance effort is not fully complete. A 20-run authenticated manager desktop sample against the local app and staging database measured content p95 at 3.20 seconds, above the 2.0-second target. Its server-action p95 was 1.84 seconds. The sample is saved at `artifacts/performance/staging-manager-desktop.json`; it needs a query/action trace and an optimization pass before this journey meets the target.
+
+Still outstanding: the full dependency audit of broad Realtime listeners, authenticated revisit and cache-isolation measurements, reliable staging/production query-plan and latency observations, a Vercel preview-to-staging environment, production telemetry, and a successful GitHub Actions run. No production database migrations, test records, payments, or kiosk orders were changed in this continuation.
+
+## Local review server
+
+The temporary staging-backed server used for this validation has been stopped. Start it with the staging environment only when a review session is needed; never load `.env.staging.local` into a production deployment.

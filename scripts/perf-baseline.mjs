@@ -234,7 +234,10 @@ async function main() {
     throw new Error('This browser harness is read-only. Use a dedicated scratch database test for mutating journeys.');
   }
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    ...(process.env.PERF_BROWSER_CHANNEL ? { channel: process.env.PERF_BROWSER_CHANNEL } : {}),
+  });
   const results = [];
   try {
     for (const profile of PROFILES) {

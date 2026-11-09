@@ -27,33 +27,39 @@ export const DEMO_USERS = [
 
 async function seedAuth() {
   console.log('Synchronizing demo auth accounts and 6-digit PINs...');
+  const failures = [];
   for (const u of DEMO_USERS) {
-    try {
-      const { error } = await client.auth.admin.createUser({
-        id: u.id,
+    const { error: createError } = await client.auth.admin.createUser({
+      id: u.id,
+      email: u.email,
+      password: u.pin,
+      email_confirm: true,
+      user_metadata: { role: u.role, full_name: u.name },
+    });
+
+    if (createError) {
+      // If user already exists, update their email, password and metadata.
+      // Do not treat arbitrary create failures as successful updates.
+      const { error: updateError } = await client.auth.admin.updateUserById(u.id, {
         email: u.email,
         password: u.pin,
         email_confirm: true,
         user_metadata: { role: u.role, full_name: u.name },
       });
-
-      if (error) {
-        // If user already exists, update their email, password and metadata
-        await client.auth.admin.updateUserById(u.id, {
-          email: u.email,
-          password: u.pin,
-          email_confirm: true,
-          user_metadata: { role: u.role, full_name: u.name },
-        });
-        console.log(`  Updated ${u.role}: ${u.email} -> PIN: ${u.pin}`);
+      if (updateError) {
+        failures.push({ role: u.role, message: `${createError.message}; update failed: ${updateError.message}` });
       } else {
-        console.log(`  Created ${u.role}: ${u.email} -> PIN: ${u.pin}`);
+        console.log(`  Updated ${u.role} account.`);
       }
-    } catch (e) {
-      console.error(`  Error processing ${u.email}:`, e);
+    } else {
+      console.log(`  Created ${u.role} account.`);
     }
   }
-  console.log('✅ Demo auth seeding completed successfully.');
+  if (failures.length) {
+    for (const failure of failures) console.error(`  Failed ${failure.role}: ${failure.message}`);
+    throw new Error(`Demo auth seeding failed for ${failures.length} account(s).`);
+  }
+  console.log('✅ Demo auth seeding completed successfully. No PINs were written to logs.');
 }
 
 seedAuth();

@@ -2,26 +2,26 @@ create extension if not exists pgtap with schema extensions;
 
 begin;
 
-select plan(6);
+select extensions.plan(6);
 
-select ok(
+select extensions.ok(
   to_regprocedure('public.get_staff_performance_report(uuid,date,date,text,uuid)') is not null,
   'shared staff performance report function exists'
 );
 
-select ok(
+select extensions.ok(
   has_function_privilege('service_role', 'public.get_staff_performance_report(uuid,date,date,text,uuid)', 'execute')
   and not has_function_privilege('authenticated', 'public.get_staff_performance_report(uuid,date,date,text,uuid)', 'execute')
   and not has_function_privilege('anon', 'public.get_staff_performance_report(uuid,date,date,text,uuid)', 'execute'),
   'performance report execution is server-only'
 );
 
-select ok(
+select extensions.ok(
   to_regclass('public.hr_attendance_daily') is not null,
   'performance report is backed by the shared attendance view'
 );
 
-select is(
+select extensions.is(
   (public.get_staff_performance_report(
     (select id from public.app_user where status = 'active' and role = 'hr' limit 1),
     (now() at time zone 'Africa/Kampala')::date - 365,
@@ -46,7 +46,7 @@ select is(
   'service total matches measured eligible database lines'
 );
 
-select ok(
+select extensions.ok(
   public.get_staff_performance_report(
     (select id from public.app_user where status = 'active' and role = 'hr' limit 1),
     (now() at time zone 'Africa/Kampala')::date - 365,
@@ -57,7 +57,7 @@ select ok(
   'report contains no customer identities or financial/pay data'
 );
 
-select ok(
+select extensions.ok(
   not exists (
     select 1
     from jsonb_array_elements(public.get_staff_performance_report(
@@ -75,5 +75,5 @@ select ok(
   'non-service roles expose attendance measures only'
 );
 
-select * from finish();
+select * from extensions.finish();
 rollback;
