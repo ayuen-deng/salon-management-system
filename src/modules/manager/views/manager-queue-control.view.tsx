@@ -47,7 +47,7 @@ export function ManagerQueueControlView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadBoard(); });
+  useSalonLiveRefresh(() => { void loadBoard(); }, true, ['app_user', 'attendance', 'visit_service', 'service_variant', 'visit', 'customer']);
 
 
   async function handleConfirmAction() {

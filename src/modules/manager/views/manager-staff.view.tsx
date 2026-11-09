@@ -53,7 +53,7 @@ export function ManagerStaffView() {
     }
     setLoading(false);
   };
-  useSalonLiveRefresh(() => { void loadStaff(); });
+  useSalonLiveRefresh(() => { void loadStaff(); }, true, ['app_user', 'staff_skill', 'app_setting', 'visit_service']);
 
 
   useEffect(() => {

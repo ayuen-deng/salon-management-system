@@ -39,7 +39,7 @@ export function ManagerPaperEntryView() {
     setLoading(false);
   };
 
-  useSalonLiveRefresh(() => { void loadMeta(); });
+  useSalonLiveRefresh(() => { void loadMeta(); }, true, ['service', 'service_variant', 'app_user', 'staff_skill', 'app_setting', 'visit_service']);
 
   useEffect(() => {
     void loadMeta();

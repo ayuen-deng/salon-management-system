@@ -24,7 +24,7 @@ export function ManagerReportsView() {
     }
     setLoading(false);
   };
-  useSalonLiveRefresh(() => { void loadReports(); });
+  useSalonLiveRefresh(() => { void loadReports(); }, true, ['business_day', 'payment', 'visit']);
 
 
   useEffect(() => {

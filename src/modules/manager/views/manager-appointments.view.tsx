@@ -52,7 +52,8 @@ export function ManagerAppointmentsView() {
     if (staffRes.success && staffRes.data) setStaffList(staffRes.data);
   };
 
-  useSalonLiveRefresh(() => { void loadAppointments(); void loadOptions(); });
+  useSalonLiveRefresh(() => { void loadAppointments(); }, true, ['appointment', 'customer', 'service', 'app_user']);
+  useSalonLiveRefresh(() => { void loadOptions(); }, true, ['service', 'service_variant', 'app_user', 'staff_skill', 'app_setting', 'visit_service']);
 
 
   useEffect(() => {
