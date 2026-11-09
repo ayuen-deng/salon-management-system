@@ -124,13 +124,22 @@ export class OwnerDashboardRepository {
       const todayKampalaStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Kampala' });
 
       // Check for any older business day that is still open
-      const { data: staleOpenDays } = await client
-        .from('business_day')
-        .select('id, business_date, opened_at')
-        .eq('location_id', this.locId)
-        .eq('status', 'open')
-        .lt('business_date', todayKampalaStr)
-        .order('business_date', { ascending: false });
+      const [staleOpenDaysResult, todayDayResult] = await Promise.all([
+        client
+          .from('business_day')
+          .select('id, business_date, opened_at')
+          .eq('location_id', this.locId)
+          .eq('status', 'open')
+          .lt('business_date', todayKampalaStr)
+          .order('business_date', { ascending: false }),
+        client
+          .from('business_day')
+          .select('*')
+          .eq('location_id', this.locId)
+          .eq('business_date', todayKampalaStr)
+          .limit(1),
+      ]);
+      const staleOpenDays = staleOpenDaysResult.data;
 
       let staleUnclosedWarning: string | undefined = undefined;
       if (staleOpenDays && staleOpenDays.length > 0) {
@@ -141,16 +150,75 @@ export class OwnerDashboardRepository {
       }
 
       // 1. Get today's business day strictly by todayKampalaStr
-      const { data: todayDayRows } = await client
-        .from('business_day')
-        .select('*')
-        .eq('location_id', this.locId)
-        .eq('business_date', todayKampalaStr)
-        .limit(1);
-
+      const todayDayRows = todayDayResult.data;
       const activeDay = todayDayRows?.[0] || null;
       const businessDate = todayKampalaStr;
       const dayStatus = (activeDay?.status || 'not_opened') as OwnerDashboardData['day_status'];
+
+      // Fetch independent dashboard sections together so the page does not wait on
+      // each hosted Postgres round trip in sequence.
+      const [
+        paymentsResult,
+        closedDaysResult,
+        visitsResult,
+        noShowAppointmentsResult,
+        unifiedAttRes,
+        liveVisitsResult,
+        lastAuditResult,
+        reviewLogsResult,
+        seenRowsResult,
+        chartDaysResult,
+      ] = await Promise.all([
+        activeDay
+          ? client.from('payment').select(`id, amount_ugx, method, status, created_at, visit:visit_id (ticket_code, customer:customer_id(first_name))`).eq('business_day_id', activeDay.id).order('created_at', { ascending: false })
+          : Promise.resolve({ data: [] }),
+        client.from('business_day').select('id, business_date').eq('location_id', this.locId).eq('status', 'closed').lt('business_date', businessDate).order('business_date', { ascending: false }),
+        activeDay
+          ? client.from('visit').select(`id, ticket_code, status, queued_at, completed_at, created_at, customer:customer_id (first_name), visit_service_line (id, status, started_at, completed_at, service:service_id (name), assigned_staff:assigned_staff_user_id (display_name)), payment (id, status)`).eq('business_day_id', activeDay.id).order('queued_at', { ascending: true })
+          : Promise.resolve({ data: [] }),
+        client.from('appointment').select(`id, scheduled_time, duration_minutes, customer:customer_id(first_name), service:service_id(name), staff:staff_user_id(display_name)`).eq('location_id', this.locId).eq('status', 'no_show'),
+        getUnifiedStaffAttendanceToday(businessDate),
+        activeDay
+          ? client.from('visit').select('ticket_code, status, queued_at, customer(first_name)').eq('business_day_id', activeDay.id).in('status', ['queued', 'in_service', 'ready_for_checkout']).order('queued_at', { ascending: true }).limit(10)
+          : Promise.resolve({ data: [] }),
+        client.from('audit_log').select('at').lte('at', nowIso).order('at', { ascending: false }).limit(1),
+        client.from('audit_log').select('id, action, reason, actor_role, at, entity_type, entity_id, before, after, app_user(display_name)').neq('actor_role', 'owner').order('at', { ascending: false }).limit(30),
+        client.from('owner_review_seen').select('entity_id'),
+        (() => {
+          const dates = Array.from({ length: 7 }, (_, index) => {
+            const date = new Date(businessDate);
+            date.setDate(date.getDate() - index);
+            return date.toISOString().split('T')[0];
+          });
+          return client.from('business_day').select('id, business_date').eq('location_id', this.locId).in('business_date', dates);
+        })(),
+      ]);
+      const payments = paymentsResult.data;
+      const closedDays = closedDaysResult.data;
+      const visits = visitsResult.data;
+      const noShowAppointments = noShowAppointmentsResult.data;
+      const liveVisits = liveVisitsResult.data;
+      const lastAudit = lastAuditResult.data;
+      const reviewLogs = reviewLogsResult.data;
+      const seenRows = seenRowsResult.data;
+
+      const dayOfWeek = new Date(businessDate).getDay();
+      const sameWeekdayDays = (closedDays || [])
+        .filter((day) => new Date(day.business_date).getDay() === dayOfWeek)
+        .slice(0, 4);
+      const sameWeekdayIds = sameWeekdayDays.map((day) => day.id);
+      const chartDays = chartDaysResult.data || [];
+      const chartDayIds = chartDays.map((day) => day.id);
+      const [histPaymentsResult, chartPaymentsResult] = await Promise.all([
+        sameWeekdayIds.length
+          ? client.from('payment').select('amount_ugx, business_day_id').in('business_day_id', sameWeekdayIds).in('status', ['recorded', 'confirmed', 'reconciled'])
+          : Promise.resolve({ data: [] }),
+        chartDayIds.length
+          ? client.from('payment').select('amount_ugx, business_day_id').in('business_day_id', chartDayIds).in('status', ['recorded', 'confirmed', 'reconciled'])
+          : Promise.resolve({ data: [] }),
+      ]);
+      const histPayments = histPaymentsResult.data;
+      const chartPayments = chartPaymentsResult.data;
 
       let openedAtStr: string | undefined = undefined;
       if (activeDay?.opened_at) {
@@ -168,15 +236,6 @@ export class OwnerDashboardRepository {
       const momoAwaitingDetails: OwnerPaymentDetail[] = [];
 
       if (activeDay) {
-        const { data: payments } = await client
-          .from('payment')
-          .select(`
-            id, amount_ugx, method, status, created_at,
-            visit:visit_id (ticket_code, customer:customer_id(first_name))
-          `)
-          .eq('business_day_id', activeDay.id)
-          .order('created_at', { ascending: false });
-
         for (const p of payments || []) {
           const amt = Number(p.amount_ugx) || 0;
           const visitObj = p.visit as unknown as { ticket_code?: string; customer?: { first_name?: string } } | null;
@@ -228,28 +287,8 @@ export class OwnerDashboardRepository {
       const momoVerifiedPct = momoTotal > 0 ? Math.round((momoVerified / momoTotal) * 100) : 0;
 
       // 3. Same-weekday 4-week comparison
-      const dayOfWeek = new Date(businessDate).getDay();
-      const { data: closedDays } = await client
-        .from('business_day')
-        .select('id, business_date')
-        .eq('location_id', this.locId)
-        .eq('status', 'closed')
-        .lt('business_date', businessDate)
-        .order('business_date', { ascending: false });
-
-      const sameWeekdayDays = (closedDays || [])
-        .filter((d) => new Date(d.business_date).getDay() === dayOfWeek)
-        .slice(0, 4);
-
       let avgSameWeekday: number | null = null;
       if (sameWeekdayDays.length > 0) {
-        const ids = sameWeekdayDays.map((d) => d.id);
-        const { data: histPayments } = await client
-          .from('payment')
-          .select('amount_ugx, business_day_id')
-          .in('business_day_id', ids)
-          .in('status', ['recorded', 'confirmed', 'reconciled']);
-
         const totalHist = (histPayments || []).reduce((sum, p) => sum + Number(p.amount_ugx), 0);
         avgSameWeekday = Math.round(totalHist / sameWeekdayDays.length);
       }
@@ -263,21 +302,6 @@ export class OwnerDashboardRepository {
       const waitDurations: number[] = [];
 
       if (activeDay) {
-        const { data: visits } = await client
-          .from('visit')
-          .select(`
-            id, ticket_code, status, queued_at, completed_at, created_at,
-            customer:customer_id (first_name),
-            visit_service_line (
-              id, status, started_at, completed_at,
-              service:service_id (name),
-              assigned_staff:assigned_staff_user_id (display_name)
-            ),
-            payment (id, status)
-          `)
-          .eq('business_day_id', activeDay.id)
-          .order('queued_at', { ascending: true });
-
         for (const v of visits || []) {
           const cust = v.customer as unknown as { first_name?: string } | null;
           const lines = (v.visit_service_line || []) as Array<{
@@ -350,17 +374,6 @@ export class OwnerDashboardRepository {
       }
 
       // No-show count & rows
-      const { data: noShowAppointments } = await client
-        .from('appointment')
-        .select(`
-          id, scheduled_time, duration_minutes,
-          customer:customer_id(first_name),
-          service:service_id(name),
-          staff:staff_user_id(display_name)
-        `)
-        .eq('location_id', this.locId)
-        .eq('status', 'no_show');
-
       for (const ns of noShowAppointments || []) {
         const cust = ns.customer as unknown as { first_name?: string } | null;
         const srv = ns.service as unknown as { name?: string } | null;
@@ -385,7 +398,6 @@ export class OwnerDashboardRepository {
       const maxWait = waitDurations.length > 0 ? Math.max(...waitDurations) : 0;
 
       // 5. Staff Attendance & Details (Single Source of Truth)
-      const unifiedAttRes = await getUnifiedStaffAttendanceToday(businessDate);
       const unifiedAtt = unifiedAttRes.success
         ? unifiedAttRes.data
         : {
@@ -446,14 +458,6 @@ export class OwnerDashboardRepository {
       // 6. Live Queue Snapshot
       let queueSnapshot: OwnerDashboardData['queue_snapshot'] = [];
       if (activeDay) {
-        const { data: liveVisits } = await client
-          .from('visit')
-          .select('ticket_code, status, queued_at, customer(first_name)')
-          .eq('business_day_id', activeDay.id)
-          .in('status', ['queued', 'in_service', 'ready_for_checkout'])
-          .order('queued_at', { ascending: true })
-          .limit(10);
-
         queueSnapshot = (liveVisits || []).map((v) => {
           const cust = v.customer as unknown as { first_name?: string } | null;
           const qTime = v.queued_at
@@ -469,13 +473,6 @@ export class OwnerDashboardRepository {
       }
 
       // 7. Last Activity Time (Always displays date if not today)
-      const { data: lastAudit } = await client
-        .from('audit_log')
-        .select('at')
-        .lte('at', nowIso)
-        .order('at', { ascending: false })
-        .limit(1);
-
       let lastActivityIso = lastAudit?.[0]?.at || nowIso;
       if (new Date(lastActivityIso).getTime() > now.getTime()) {
         lastActivityIso = nowIso;
@@ -492,17 +489,6 @@ export class OwnerDashboardRepository {
         : `${lastActivityDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${timePart}`;
 
       // 8. "For Your Review" Items
-      const { data: reviewLogs } = await client
-        .from('audit_log')
-        .select('id, action, reason, actor_role, at, entity_type, entity_id, before, after, app_user(display_name)')
-        .neq('actor_role', 'owner')
-        .order('at', { ascending: false })
-        .limit(30);
-
-      const { data: seenRows } = await client
-        .from('owner_review_seen')
-        .select('entity_id');
-
       const seenSet = new Set((seenRows || []).map((s) => s.entity_id));
       const reviewItems: OwnerDashboardData['review_items'] = [];
 
@@ -575,32 +561,23 @@ export class OwnerDashboardRepository {
         });
       }
 
-      // 9. Revenue Chart (Past 7 Days)
+      // 9. Revenue Chart (Past 7 Days). Resolve the seven dates and their
+      // payments in two requests instead of awaiting one request per date.
       const revenueChart: OwnerDashboardData['revenue_chart'] = [];
       const d = new Date(businessDate);
+      const totalsByDay = new Map<string, number>();
+      for (const payment of chartPayments || []) {
+        totalsByDay.set(payment.business_day_id, (totalsByDay.get(payment.business_day_id) || 0) + Number(payment.amount_ugx));
+      }
+      const chartDayByDate = new Map(chartDays.map((day) => [day.business_date, day.id]));
       for (let i = 6; i >= 0; i--) {
         const targetDate = new Date(d);
         targetDate.setDate(d.getDate() - i);
         const dateStr = targetDate.toISOString().split('T')[0];
         const dayLabel = targetDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 
-        const { data: dayObj } = await client
-          .from('business_day')
-          .select('id')
-          .eq('location_id', this.locId)
-          .eq('business_date', dateStr)
-          .maybeSingle();
-
-        let dayTotal = 0;
-        if (dayObj) {
-          const { data: pList } = await client
-            .from('payment')
-            .select('amount_ugx')
-            .eq('business_day_id', dayObj.id)
-            .in('status', ['recorded', 'confirmed', 'reconciled']);
-
-          dayTotal = (pList || []).reduce((sum, p) => sum + Number(p.amount_ugx), 0);
-        }
+        const chartDayId = chartDayByDate.get(dateStr);
+        const dayTotal = chartDayId ? totalsByDay.get(chartDayId) || 0 : 0;
 
         revenueChart.push({ day_label: dayLabel, amount_ugx: dayTotal });
       }

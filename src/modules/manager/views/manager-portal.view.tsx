@@ -75,7 +75,20 @@ export function ManagerPortalView() {
     });
   };
 
-  useSalonLiveRefresh(refreshData);
+  useSalonLiveRefresh(refreshData, true, [
+    'business_day',
+    'approval_request',
+    'visit',
+    'visit_service',
+    'service_variant',
+    'customer',
+    'app_user',
+    'attendance',
+    'rota_entry',
+    'work_hours_policy',
+    'leave_request',
+    'audit_log',
+  ]);
 
   useEffect(() => {
     refreshData();

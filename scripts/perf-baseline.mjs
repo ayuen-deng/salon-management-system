@@ -105,7 +105,15 @@ async function measure(browser, profile, journey, run, checkOnly) {
     window.__perfLcp = null;
     const scan = () => {
       const main = document.querySelector('main, [role="main"]') || document.body;
-      const skeleton = main?.querySelector('[aria-busy="true"], [data-loading="true"], .animate-pulse');
+      const explicitLoading = main?.querySelector('[aria-busy="true"], [data-loading="true"]');
+      // Small animated status indicators (for example, an open-day dot) can
+      // remain after content loads. Count only sizeable pulse elements as a
+      // skeleton when the app does not expose an explicit loading marker.
+      const visualSkeleton = [...(main?.querySelectorAll('.animate-pulse') || [])].find((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.width >= 100 && rect.height >= 24;
+      });
+      const skeleton = explicitLoading || visualSkeleton;
       if (skeleton && window.__perfSkeletonAt === null) window.__perfSkeletonAt = performance.now() - startedAt;
       const text = (main?.innerText || '').trim();
       if (!skeleton && text.length >= 60 && window.__perfContentAt === null) window.__perfContentAt = performance.now() - startedAt;
