@@ -146,7 +146,9 @@ export function SharedCatalogueBoardView({ userRole }: SharedCatalogueBoardProps
     }
     setLoading(false);
   };
-  useSalonLiveRefresh(() => { void loadData(); });
+  useSalonLiveRefresh(() => { void loadData(); }, true, [
+    'service', 'service_variant', 'staff_skill', 'app_user', 'app_setting',
+  ]);
 
 
   useEffect(() => {

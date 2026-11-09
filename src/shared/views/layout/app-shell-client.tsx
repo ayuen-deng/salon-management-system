@@ -95,7 +95,7 @@ export function AppShellClient({
   useEffect(() => {
     const coalescer = createSalonChangeCoalescer((tables) => {
       if (tables.length === 0) return;
-      const handledLocally = dispatchSalonDataChanged({ table: '*' });
+      const handledLocally = dispatchSalonDataChanged({ table: tables.length === 1 ? tables[0] : '*', tables });
       // Client views already reload through their local hook. Refresh the
       // Server Component tree only on routes with no local invalidation hook.
       if (!handledLocally) router.refresh();
@@ -171,8 +171,9 @@ export function AppShellClient({
     const loadCount = () => getPendingKioskOrderCountAction().then((res) => { if (res.success) setPendingKioskOrders(res.data); });
     void loadCount();
     const handleSalonChange = (event: Event) => {
-      const table = (event as CustomEvent<{ table?: string }>).detail?.table;
-      if (table === 'visit' || table === '*') void loadCount();
+      const change = (event as CustomEvent<{ table?: string; tables?: readonly string[] }>).detail;
+      const tables = change?.tables ?? [change?.table ?? ''];
+      if (tables.includes('*') || tables.includes('kiosk_order_request')) void loadCount();
     };
     window.addEventListener('salon:data-changed', handleSalonChange);
     return () => window.removeEventListener('salon:data-changed', handleSalonChange);

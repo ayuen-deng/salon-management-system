@@ -248,7 +248,29 @@ export function ReceptionWorkspaceView() {
       setConnectionError(true);
     }
   }
-  useSalonLiveRefresh(() => { void loadQueueAndDraft(); });
+  useSalonLiveRefresh(() => { void loadQueueAndDraft(); }, true, [
+    'visit', 'visit_service', 'kiosk_order_request', 'desk_session', 'customer', 'app_user', 'service_variant',
+  ]);
+  useSalonLiveRefresh(() => { void refreshCatalogue(); }, true, ['service', 'service_variant', 'staff_skill', 'app_user', 'app_setting']);
+  useSalonLiveRefresh(() => { void refreshStylists(); }, true, [
+    'attendance', 'attendance_break_period', 'leave_request', 'rota_entry', 'staff_skill', 'app_user',
+  ]);
+  useSalonLiveRefresh(() => { void refreshBusinessDay(); }, true, ['business_day']);
+
+  async function refreshCatalogue() {
+    const result = await getCatalogueAction();
+    if (result.success) setCatalogue(result.data.services.filter((service) => service.active));
+  }
+
+  async function refreshStylists() {
+    const result = await getStylistsTodayAction();
+    if (result.success) setStylists(result.data);
+  }
+
+  async function refreshBusinessDay() {
+    const result = await getBusinessDayStatusAction();
+    if (result.success) setDayOpen(result.data.is_open);
+  }
 
   useEffect(() => {
     if (!requestedKioskOrderId || activeKioskOrder || openingKioskOrderId.current === requestedKioskOrderId) return;

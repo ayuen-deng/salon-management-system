@@ -59,7 +59,7 @@ export function ReceptionKioskOrdersView() {
     const timer = window.setTimeout(() => { void load(true, search, tab); void refreshCounts(search); }, 250);
     return () => { window.clearTimeout(timer); generation.current += 1; countGeneration.current += 1; };
   }, [search, tab]);
-  useSalonLiveRefresh(() => { void load(true, search, tab); void refreshCounts(search); });
+  useSalonLiveRefresh(() => { void load(true, search, tab); void refreshCounts(search); }, true, ['kiosk_order_request', 'visit']);
 
   const openOrder = (row: ReceptionKioskOrderListItem) => {
     router.push(`/reception?order=${encodeURIComponent(row.id)}`);

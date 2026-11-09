@@ -3,7 +3,13 @@
 import { useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 
-export type SalonChange = { table: string };
+export type SalonChange = { table: string; tables?: readonly string[] };
+
+export function salonChangeAffectsDependencies(change: SalonChange | undefined, dependencies?: readonly string[]) {
+  if (!dependencies?.length) return true;
+  const changedTables = change?.tables ?? [change?.table ?? ''];
+  return changedTables.includes('*') || changedTables.some((table) => dependencies.includes(table));
+}
 
 const CHANGE_EVENT = 'salon:data-changed';
 let browserClient: ReturnType<typeof createBrowserClient> | undefined;
@@ -34,19 +40,31 @@ export function subscribeToSalonLiveChanges(onChange: (change: SalonChange) => v
 }
 
 /** Refresh this view's server-backed data without remounting forms or pending actions. */
-export function useSalonLiveRefresh(refresh: () => void, enabled = true) {
+export function useSalonLiveRefresh(
+  refresh: () => void,
+  enabled = true,
+  dependencies?: readonly string[],
+) {
   const refreshRef = useRef(refresh);
+  const dependencyKey = dependencies?.join('\0');
   refreshRef.current = refresh;
 
   useEffect(() => {
     if (!enabled) return;
     const handler = (event: Event) => {
+      const change = (event as CustomEvent<SalonChange>).detail;
+      if (!salonChangeAffectsDependencies(change, dependencies)) {
+        // A mounted client view owns its own refresh path. Cancel the shell's
+        // full RSC fallback for unrelated tables to avoid refetching the route.
+        if (dependencies?.length) event.preventDefault();
+        return;
+      }
       event.preventDefault();
       refreshRef.current();
     };
     window.addEventListener(CHANGE_EVENT, handler);
     return () => window.removeEventListener(CHANGE_EVENT, handler);
-  }, [enabled]);
+  }, [dependencyKey, enabled]);
 }
 
 /** Returns true when an active page hook handled the invalidation locally. */

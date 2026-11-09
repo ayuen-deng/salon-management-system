@@ -53,7 +53,7 @@ export function QueueDisplayView() {
       setIsReconnecting(true);
     }
   }
-  useSalonLiveRefresh(() => { void updateBoard(); });
+  useSalonLiveRefresh(() => { void updateBoard(); }, true, ['visit', 'visit_service', 'app_user', 'service_variant', 'service', 'business_day']);
 
 
   // Format wait estimate header text

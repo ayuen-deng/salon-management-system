@@ -38,6 +38,9 @@ function readJourneys() {
   if (!Array.isArray(journeys) || journeys.some((journey) => !journey.name || !journey.path)) {
     throw new Error('PERF_JOURNEYS_JSON must be an array of {name, path, storageState?}.');
   }
+  if (journeys.some((journey) => Boolean(journey.revisitSelector) !== Boolean(journey.revisitContentSelector))) {
+    throw new Error('Journeys with revisitSelector must also provide revisitContentSelector to verify the revisited content.');
+  }
   return journeys;
 }
 
@@ -88,7 +91,7 @@ async function measure(browser, profile, journey, run, checkOnly) {
   page.on('request', (request) => {
     requests.add(request);
     if (request.method() === 'POST' && request.headers()['next-action']) serverActionStartedAt.set(request, Date.now());
-    if (/supabase\.(co|in)|localhost:54321/i.test(request.url())) supabaseRequests.add(request);
+    if (/supabase\.(co|in)|localhost:(?:54321|15421)/i.test(request.url())) supabaseRequests.add(request);
   });
   page.on('requestfinished', (request) => {
     const startedAt = serverActionStartedAt.get(request);
@@ -193,10 +196,24 @@ async function measure(browser, profile, journey, run, checkOnly) {
   sample.transferBytes = first.transferBytes;
 
   if (journey.revisitSelector) {
-    const revisitStart = Date.now();
-    await page.locator(journey.revisitSelector).click();
-    await page.goBack();
-    sample.revisitMs = Date.now() - revisitStart;
+    const returnUrl = page.url();
+    const link = page.locator(journey.revisitSelector).first();
+    await link.waitFor({ state: 'visible', timeout: 10_000 });
+    const href = await link.getAttribute('href');
+    if (!href) throw new Error(`${journey.name}: revisitSelector must identify a link with an href.`);
+    const targetUrl = new URL(href, returnUrl).toString();
+    const revisitStart = performance.now();
+    await Promise.all([
+      page.waitForURL(targetUrl, { timeout: 15_000 }),
+      link.click(),
+    ]);
+    await page.waitForLoadState('domcontentloaded', { timeout: 15_000 }).catch(() => {});
+    await Promise.all([
+      page.waitForURL(returnUrl, { timeout: 15_000 }),
+      page.goBack({ waitUntil: 'commit', timeout: 15_000 }),
+    ]);
+    await page.locator(journey.revisitContentSelector).waitFor({ state: 'visible', timeout: 15_000 });
+    sample.revisitMs = performance.now() - revisitStart;
   } else {
     sample.revisitMs = null;
   }

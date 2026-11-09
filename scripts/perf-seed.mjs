@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,11 +36,45 @@ const env = {
   PGPASSWORD: decodeURIComponent(connection.password),
   PGSSLMODE: 'disable',
 };
-const result = spawnSync('psql', ['--no-psqlrc', '--set', 'ON_ERROR_STOP=1', '--file', path.join(root, 'supabase', 'perf', 'seed.sql')], {
+const seedPath = path.join(root, 'supabase', 'perf', 'seed.sql');
+const sql = fs.readFileSync(seedPath, 'utf8');
+const psqlArgs = ['--no-psqlrc', '--set', 'ON_ERROR_STOP=1', '--file', seedPath];
+let result = spawnSync('psql', psqlArgs, {
   cwd: root,
   env,
   encoding: 'utf8',
   stdio: ['ignore', 'inherit', 'inherit'],
 });
-if (result.error) throw new Error(`Could not start psql: ${result.error.message}`);
+
+if (result.error?.code === 'ENOENT'
+  && connection.pathname.slice(1) === 'postgres'
+  && process.env.PERF_LOCAL_SUPABASE_CONFIRM === 'LOCAL_SUPABASE_ONLY') {
+  const dockerCandidates = [
+    process.env.DOCKER_PATH,
+    'docker',
+    'C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe',
+    path.join(process.env.LOCALAPPDATA || '', 'Programs', 'DockerDesktop', 'resources', 'bin', 'docker.exe'),
+  ].filter(Boolean);
+  let dockerPath;
+  for (const candidate of dockerCandidates) {
+    const probe = spawnSync(candidate, ['version', '--format', '{{.Server.Version}}'], { encoding: 'utf8' });
+    if (!probe.error && probe.status === 0) {
+      dockerPath = candidate;
+      break;
+    }
+  }
+  if (!dockerPath) throw new Error('psql is not installed and a Docker CLI/server was not found for the local Supabase database.');
+  const container = process.env.PERF_LOCAL_SUPABASE_CONTAINER || 'supabase_db_salon-system';
+  result = spawnSync(dockerPath, [
+    'exec', '-i', container, 'psql', '--no-psqlrc', '--set', 'ON_ERROR_STOP=1',
+    '--username', decodeURIComponent(connection.username), '--dbname', connection.pathname.slice(1),
+  ], {
+    cwd: root,
+    input: sql,
+    encoding: 'utf8',
+    stdio: ['pipe', 'inherit', 'inherit'],
+  });
+}
+
+if (result.error) throw new Error(`Could not start the database client: ${result.error.message}`);
 if (result.status !== 0) process.exit(result.status || 1);

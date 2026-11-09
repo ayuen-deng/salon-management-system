@@ -35,14 +35,18 @@ function checkFile(filePath) {
     }
 
     // Check deep cross-module imports: e.g. import ... from '@/modules/foo/models/...'
-    const deepModuleMatch = line.match(/@\/modules\/([^/'"]+)\/([^/'"]+)/);
+    const deepModuleMatch = line.match(/@\/modules\/([^/'"]+)\/([^'"]+)/);
     if (deepModuleMatch) {
       const targetModule = deepModuleMatch[1];
-      const targetSub = deepModuleMatch[2];
+      const targetPath = deepModuleMatch[2];
+      const targetSub = targetPath.split('/')[0];
       // If importing another module beyond its public index
       const currentModuleMatch = normalizedPath.match(/\/modules\/([^/]+)\//);
       const currentModule = currentModuleMatch ? currentModuleMatch[1] : null;
-      if (currentModule && currentModule !== targetModule && targetSub !== 'index') {
+      // Next.js Server Actions are explicit client/server boundaries. Importing
+      // one directly avoids loading unrelated server-only barrel exports.
+      const isServerAction = targetSub === 'controllers' && /\/[^/]+\.actions$/.test(targetPath);
+      if (currentModule && currentModule !== targetModule && targetSub !== 'index' && !isServerAction) {
         violations.push(`${normalizedPath}:${idx + 1} - Architectural violation: Deep import from module '${targetModule}'. Must import from public index '@/modules/${targetModule}'.`);
       }
     }

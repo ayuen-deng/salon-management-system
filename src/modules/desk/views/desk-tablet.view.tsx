@@ -73,7 +73,7 @@ export function DeskTabletView() {
     }
   }, []);
 
-  useSalonLiveRefresh(() => { void refreshCatalogue(); });
+  useSalonLiveRefresh(() => { void refreshCatalogue(); }, true, ['service', 'service_variant', 'app_setting']);
 
   useEffect(() => {
     try {

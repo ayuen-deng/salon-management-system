@@ -57,8 +57,10 @@ export function AttendanceProvider({
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const handleSalonChange = (event: Event) => {
-      const table = (event as CustomEvent<{ table?: string }>).detail?.table;
-      if (table && table !== '*' && table !== 'attendance') return;
+      const change = (event as CustomEvent<{ table?: string; tables?: readonly string[] }>).detail;
+      const tables = change?.tables ?? [change?.table ?? ''];
+      if (!tables.includes('*') && !tables.includes('attendance')) return;
+      event.preventDefault();
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => { void refresh(); }, 80);
     };

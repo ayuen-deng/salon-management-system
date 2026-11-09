@@ -68,8 +68,6 @@ export function ReceptionVisitsView() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
   }, [searchQuery]);
 
   async function loadData() {
@@ -91,7 +89,10 @@ export function ReceptionVisitsView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadData(); });
+  useSalonLiveRefresh(() => { void loadData(); }, true, [
+    'visit', 'visit_service', 'payment', 'receipt', 'business_day', 'customer',
+    'app_user', 'service_variant', 'service', 'kiosk_order_request',
+  ]);
 
 
   async function handleOpenReprint(visit: ReceptionQueueItem) {

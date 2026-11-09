@@ -30,7 +30,8 @@ const PairedDeskTabletView = dynamic(
 );
 
 export function DeskTabletEntryView() {
-  const [checkingSession, setCheckingSession] = useState(true);
+  // Render the pairing form in the first server response. The browser checks
+  // local storage after hydration and replaces the form for a paired tablet.
   const [hasSession, setHasSession] = useState(false);
   const [pairingCode, setPairingCode] = useState('');
   const [pairingLoading, setPairingLoading] = useState(false);
@@ -38,7 +39,6 @@ export function DeskTabletEntryView() {
 
   useEffect(() => {
     setHasSession(Boolean(window.localStorage.getItem('mzuri-kiosk-device-session')));
-    setCheckingSession(false);
   }, []);
 
   async function handlePairTablet(event: FormEvent<HTMLFormElement>) {
@@ -60,7 +60,6 @@ export function DeskTabletEntryView() {
     }
   }
 
-  if (checkingSession) return <PreparingTablet />;
   if (hasSession) return <PairedDeskTabletView />;
 
   return (

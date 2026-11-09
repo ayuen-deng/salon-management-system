@@ -34,7 +34,7 @@ export function ReceptionView() {
     const qRes = await getLiveQueueAction();
     if (qRes.success) setQueue(qRes.data);
   }
-  useSalonLiveRefresh(() => { void loadQueue(); });
+  useSalonLiveRefresh(() => { void loadQueue(); }, true, ['visit', 'visit_service']);
 
 
   async function handlePhoneSearch() {

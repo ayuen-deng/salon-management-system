@@ -23,6 +23,7 @@
     "catalogue:import": "node scripts/catalogue-import.mjs",
     "latency:check": "node scripts/latency-check.mjs",
     "perf:baseline": "node scripts/perf-baseline.mjs",
+    "perf:local-check": "node scripts/perf-local.mjs",
     "perf:check": "node scripts/perf-baseline.mjs --check",
     "perf:seed": "node scripts/perf-seed.mjs",
     "seed:history": "node scripts/seed-5-weeks-history.mjs",

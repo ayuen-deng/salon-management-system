@@ -49,7 +49,7 @@ as $$
 declare
   v_old_hr_id uuid;
   v_new_hr_id uuid;
-  v_owner_role user_role;
+  v_owner_role app_role;
 begin
   -- Validate caller is owner
   select role into v_owner_role from app_user where id = p_owner_id;
@@ -129,7 +129,7 @@ security definer
 as $$
 declare
   v_revoked_id uuid;
-  v_owner_role user_role;
+  v_owner_role app_role;
 begin
   select role into v_owner_role from app_user where id = p_owner_id;
   if v_owner_role is null or v_owner_role != 'owner' then

@@ -163,7 +163,7 @@ export function ManagerStaffView() {
         <Card className="border-amber-300 bg-amber-50 p-4 space-y-2">
           <div className="font-semibold text-amber-950">Temporary PIN reset for {resetPinResult.userName}</div>
           <p className="text-xs text-amber-900">This PIN is shown once. Give it privately to the staff member; they must choose a new PIN at sign-in.</p>
-          <div className="font-mono text-2xl font-bold tracking-widest text-amber-950">{resetPinResult.pin}</div>
+          <div className="text-2xl font-bold tracking-[0.25em] text-amber-950 [font-family:ui-monospace]">{resetPinResult.pin}</div>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={async () => { await navigator.clipboard.writeText(`Username: ${resetPinResult.username}\nTemporary PIN: ${resetPinResult.pin}`); setFeedback('Temporary credentials copied. Share them privately.'); }}>Copy credentials</Button>
             <Button size="sm" variant="outline" onClick={() => { if (!openCredentialSlip({ fullName: resetPinResult.userName, role: resetPinResult.role, username: resetPinResult.username, pin: resetPinResult.pin })) setFeedback('Allow the print window to open, then try again.'); }}>Print slip</Button>

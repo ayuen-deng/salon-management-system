@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Download } from 'lucide-react';
 import { Button } from '@/shared/views/ui/button';
-import { createReportPdf } from '@/shared/lib/report-pdf';
+import { getCurrentUserAction } from '@/modules/auth/controllers/auth.actions';
 import { recordHrReportExportAction } from '@/modules/people-hr/controllers/hr.actions';
 
 export interface HrExportColumn { label: string; value: (row: any) => unknown }
@@ -22,20 +22,27 @@ export function HrExportMenu({ title, filename, rows, columns, filters = 'All re
       const dateValues = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
       const dateStamp = `${dateValues.year}-${dateValues.month}-${dateValues.day}`;
       const generatedAt = now.toLocaleString('en-GB', { timeZone: 'Africa/Kampala', dateStyle: 'medium', timeStyle: 'short' });
-      let blob: Blob;
+      let blob: Blob | null = null;
       if (format === 'CSV') {
         const csv = [columns.map((column) => safeCsv(column.label)).join(','), ...rows.map((row) => columns.map((column) => safeCsv(column.value(row))).join(','))].join('\r\n');
         blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
       } else {
-        const pdf = await createReportPdf({ title, columns: columns.map((column) => column.label), rows: rows.map((row) => columns.map((column) => String(column.value(row) ?? '—'))), filters, generatedAt, generatedBy: 'HR' });
+        const actor = await getCurrentUserAction();
+        if (!actor || actor.role !== 'hr') throw new Error('Your HR session could not be verified. Sign in again.');
+        const { createReportPdf } = await import('@/shared/lib/report-pdf');
+        const pdf = await createReportPdf({
+          title,
+          columns: columns.map((column) => column.label),
+          rows: rows.map((row) => columns.map((column) => String(column.value(row) ?? '—'))),
+          filters,
+          generatedAt,
+          generatedBy: actor.displayName || actor.fullName || 'HR',
+        });
         blob = new Blob([pdf as BlobPart], { type: 'application/pdf' });
       }
       const result = await recordHrReportExportAction({ title, format, filters, recordCount: rows.length });
       if (!result.success) throw new Error(result.error?.message || 'Could not record this export. Retry the export.');
-      if (format === 'PDF') {
-        const pdf = await createReportPdf({ title, columns: columns.map((column) => column.label), rows: rows.map((row) => columns.map((column) => String(column.value(row) ?? '—'))), filters, generatedAt, generatedBy: result.data?.actorName || 'HR' });
-        blob = new Blob([pdf as BlobPart], { type: 'application/pdf' });
-      }
+      if (!blob) throw new Error('Unsupported export format.');
       const url = URL.createObjectURL(blob); const link = document.createElement('a');
       link.href = url; link.download = `${filename}-${dateStamp}.${format.toLowerCase()}`;
       document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);

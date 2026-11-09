@@ -1,0 +1,40 @@
+name: Quality checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run check:architecture
+      - run: npm run check:loading
+      - run: npm run check:audit
+      - run: npm run check:tokens
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install chromium --with-deps
+      - name: Check kiosk content performance
+        run: npm run perf:local-check
+        env:
+          PERF_RUNS: 20
+          PERF_PROFILE_NAMES: uganda-4g,slow-3g
+          PERF_JOURNEYS_JSON: '[{"name":"customer-kiosk-shell","path":"/desk"}]'
+          PERF_OUTPUT: artifacts/performance/ci-kiosk.json

@@ -138,6 +138,7 @@ join lateral (
   order by id limit 1 offset ((n - 1) % 32)
 ) staff on true;
 
+-- 32 staff x 1,825 days gives 58,400 unique staff/day records (no synthetic duplicates).
 insert into public.attendance(organization_id, location_id, staff_user_id, business_date, clock_in, clock_out, absence_type)
 select 'a0000000-0000-0000-0000-000000000001'::uuid,
        'b0000000-0000-0000-0000-000000000001'::uuid,
@@ -146,7 +147,7 @@ select 'a0000000-0000-0000-0000-000000000001'::uuid,
        (current_date - 1824 + ((n - 1) % 1825))::timestamptz + time '08:00',
        (current_date - 1824 + ((n - 1) % 1825))::timestamptz + time '17:00',
        'none'::attendance_absence_type
-from generate_series(1, 60000) as n
+from generate_series(1, 58400) as n
 join lateral (
   select id from public.app_user
   where display_name like 'Perf Staff %'
@@ -158,7 +159,7 @@ select 'a0000000-0000-0000-0000-000000000001'::uuid,
        'b0000000-0000-0000-0000-000000000001'::uuid,
        'c0000000-0000-0000-0000-000000000002'::uuid,
        'manager',
-       'PERF_SEED_EVENT',
+       'VISIT_CREATED',
        'performance_fixture',
        n::text,
        jsonb_build_object('synthetic', true),
@@ -176,4 +177,4 @@ union all select 'visits', count(*) from public.visit where ticket_code like 'PE
 union all select 'payments', count(*) from public.payment where idempotency_key like 'perf-payment-%'
 union all select 'appointments', count(*) from public.appointment where created_at < now() and customer_id in (select id from public.customer where first_name like 'Perf Customer %')
 union all select 'attendance', count(*) from public.attendance where staff_user_id in (select id from public.app_user where display_name like 'Perf Staff %')
-union all select 'audit', count(*) from public.audit_log where action = 'PERF_SEED_EVENT';
+union all select 'audit', count(*) from public.audit_log where action = 'VISIT_CREATED' and entity_type = 'performance_fixture';
