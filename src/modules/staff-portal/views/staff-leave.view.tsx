@@ -33,7 +33,7 @@ export function StaffLeaveView() {
     setLoading(false);
   }, []);
 
-  useSalonLiveRefresh(() => { void load(); });
+  useSalonLiveRefresh(() => { void load(); }, true, ['hr_leave_balance', 'leave_request']);
 
   useEffect(() => { void load(); }, [load]);
 

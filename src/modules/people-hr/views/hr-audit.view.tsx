@@ -72,7 +72,7 @@ export function HrAuditView() {
     });
   };
 
-  useSalonLiveRefresh(refreshAudit);
+  useSalonLiveRefresh(refreshAudit, true, ['hr_people_access_audit', 'app_user']);
 
   useEffect(() => {
     let active = true;

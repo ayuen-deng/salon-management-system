@@ -16,7 +16,7 @@ export function StaffAppointmentsView() {
     setLoading(false);
   }
 
-  useSalonLiveRefresh(() => { void loadAppointments(); });
+  useSalonLiveRefresh(() => { void loadAppointments(); }, true, ['appointment', 'customer', 'service']);
 
   useEffect(() => {
     void loadAppointments();

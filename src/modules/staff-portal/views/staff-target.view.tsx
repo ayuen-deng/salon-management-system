@@ -16,7 +16,7 @@ export function StaffTargetView() {
     setLoading(false);
   }
 
-  useSalonLiveRefresh(() => { void loadTarget(); });
+  useSalonLiveRefresh(() => { void loadTarget(); }, true, ['visit_service', 'app_setting']);
 
   useEffect(() => {
     void loadTarget();

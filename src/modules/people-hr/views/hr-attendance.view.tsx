@@ -80,7 +80,8 @@ export function HrAttendanceView() {
     if (policyRes.success && policyRes.data) setWorkPolicy(policyRes.data);
     if (balanceRes.success && balanceRes.data) setLeaveBalances(balanceRes.data);
   };
-  useSalonLiveRefresh(() => { void loadPolicy(); });
+  useSalonLiveRefresh(() => { void loadPolicy(); }, true, ['work_hours_policy', 'hr_leave_balance', 'leave_request', 'annual_leave_policy']);
+  useSalonLiveRefresh(() => { void loadData(); }, true, ['attendance', 'app_user', 'rota_entry', 'business_day', 'work_hours_policy']);
 
 
   useEffect(() => {

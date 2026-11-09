@@ -68,7 +68,7 @@ export function HrRotaView() {
     }
     setLoading(false);
   };
-  useSalonLiveRefresh(() => { void loadData(); });
+  useSalonLiveRefresh(() => { void loadData(); }, true, ['app_user', 'rota_entry', 'work_hours_policy']);
 
 
   useEffect(() => {

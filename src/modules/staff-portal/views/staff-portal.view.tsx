@@ -96,7 +96,7 @@ export function StaffPortalView({ initialDisplayName }: StaffPortalViewProps) {
       setLoading(false);
     }
   }
-  useSalonLiveRefresh(() => { void loadQueue(); });
+  useSalonLiveRefresh(() => { void loadQueue(); }, true, ['app_user', 'attendance', 'business_day', 'visit_service', 'app_setting', 'staff_skill', 'service_variant', 'service', 'visit', 'customer', 'appointment']);
 
 
   // Handle Start Line Action

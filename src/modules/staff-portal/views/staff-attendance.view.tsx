@@ -28,7 +28,7 @@ export function StaffAttendanceView() {
       setLoading(false);
     }
   }
-  useSalonLiveRefresh(() => { void loadAttendance(); });
+  useSalonLiveRefresh(() => { void loadAttendance(); }, true, ['attendance']);
 
 
   const logs = data?.last7Days || [];

@@ -26,7 +26,7 @@ export function StaffHistoryView() {
     setLoading(false);
   }
 
-  useSalonLiveRefresh(() => { void loadHistory(); });
+  useSalonLiveRefresh(() => { void loadHistory(); }, true, ['visit_service', 'service_variant', 'service', 'visit', 'customer']);
 
   useEffect(() => {
     void loadHistory();
