@@ -23,7 +23,7 @@ export function OwnerPaymentsView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadPayments(); });
+  useSalonLiveRefresh(() => { void loadPayments(); }, true, ['payment', 'business_day', 'visit', 'app_user']);
 
 
   const momoPayments = payments.filter((p) => p.method === 'mobile_money');

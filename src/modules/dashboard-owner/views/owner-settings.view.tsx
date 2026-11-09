@@ -77,7 +77,7 @@ export function OwnerSettingsView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadSettings(); });
+  useSalonLiveRefresh(() => { void loadSettings(); }, true, ['app_setting', 'app_user']);
 
 
   async function handleSaveReceiptSettings() {

@@ -25,7 +25,7 @@ export function OwnerSummariesView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadSummaries(); });
+  useSalonLiveRefresh(() => { void loadSummaries(); }, true, ['business_day', 'daily_summary']);
 
 
   return (

@@ -22,7 +22,7 @@ export function OwnerWaitsView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadWaits(); });
+  useSalonLiveRefresh(() => { void loadWaits(); }, true, ['visit_service']);
 
 
   return (

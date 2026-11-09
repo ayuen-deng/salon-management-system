@@ -24,7 +24,7 @@ export function OwnerAuditView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadAudit(); });
+  useSalonLiveRefresh(() => { void loadAudit(); }, true, ['audit_log', 'app_user']);
 
 
   return (

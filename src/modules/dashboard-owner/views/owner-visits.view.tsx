@@ -25,7 +25,7 @@ export function OwnerVisitsView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadVisits(); });
+  useSalonLiveRefresh(() => { void loadVisits(); }, true, ['visit', 'visit_service', 'payment', 'customer', 'business_day', 'service_variant', 'app_user']);
 
 
   return (
