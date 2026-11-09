@@ -77,7 +77,7 @@ export function ReceptionCustomersView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadCustomers(); });
+  useSalonLiveRefresh(() => { void loadCustomers(searchQuery); }, true, ['customer', 'visit', 'visit_service', 'payment', 'service_variant']);
 
 
   async function handleSaveFirstName(id: string) {

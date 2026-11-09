@@ -44,8 +44,6 @@ export function ReceptionAppointmentsView() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   async function loadData() {
@@ -62,7 +60,7 @@ export function ReceptionAppointmentsView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadData(); });
+  useSalonLiveRefresh(() => { void loadData(); }, true, ['appointment', 'app_user', 'service', 'customer']);
 
 
   async function handleCreateAppointment(e: React.FormEvent) {

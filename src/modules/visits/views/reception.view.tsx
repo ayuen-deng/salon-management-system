@@ -20,8 +20,6 @@ export function ReceptionView() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadQueue, 15000);
-    return () => clearInterval(interval);
   }, []);
 
   async function loadData() {

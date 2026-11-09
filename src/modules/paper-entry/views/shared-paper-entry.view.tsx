@@ -77,7 +77,8 @@ export function SharedPaperEntryView({ role }: SharedPaperEntryViewProps) {
     setLoading(false);
   };
 
-  useSalonLiveRefresh(() => { void loadMeta(); });
+  useSalonLiveRefresh(() => { void getPaperCatalogueAction().then((result) => { if (result.success && result.data) setCatalogue(result.data); }); }, true, ['service', 'service_variant']);
+  useSalonLiveRefresh(() => { void getPaperStaffAction().then((result) => { if (result.success && result.data) setStaff(result.data); }); }, true, ['app_user']);
 
   useEffect(() => {
     void loadMeta();

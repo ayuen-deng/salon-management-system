@@ -23,8 +23,6 @@ export function QueueDisplayView() {
 
   useEffect(() => {
     updateBoard();
-    const interval = setInterval(updateBoard, 3000);
-    return () => clearInterval(interval);
   }, []);
 
   async function updateBoard() {

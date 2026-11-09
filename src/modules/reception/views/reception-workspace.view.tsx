@@ -169,18 +169,19 @@ export function ReceptionWorkspaceView() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
 
-  // Load initial data & polling
+  // Load initial data once; queue, kiosk orders, options, and business-day changes refresh from scoped realtime events.
   useEffect(() => {
     loadInitialData();
-    const interval = setInterval(() => {
-      loadQueueAndDraft();
-    }, 5000);
+  }, []);
+
+  useEffect(() => {
+    if (!activeKioskOrder) return;
     const claimInterval = setInterval(() => {
       if (activeKioskOrder && !document.hidden && Date.now() - kioskActivityAt.current < 90_000) {
         void touchKioskClaimAction(activeKioskOrder.id);
       }
     }, 30_000);
-    return () => { clearInterval(interval); clearInterval(claimInterval); };
+    return () => clearInterval(claimInterval);
   }, [activeKioskOrder]);
 
   async function loadInitialData() {

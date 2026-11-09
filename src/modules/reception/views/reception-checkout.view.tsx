@@ -55,8 +55,6 @@ export function ReceptionCheckoutView() {
 
   useEffect(() => {
     loadCheckoutData();
-    const interval = setInterval(loadCheckoutData, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   async function loadCheckoutData() {
@@ -71,7 +69,7 @@ export function ReceptionCheckoutView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadCheckoutData(); });
+  useSalonLiveRefresh(() => { void loadCheckoutData(); }, true, ['visit', 'visit_service', 'payment', 'business_day', 'customer', 'app_user', 'service_variant']);
 
 
   function handleSelectVisit(v: ReceptionQueueItem) {

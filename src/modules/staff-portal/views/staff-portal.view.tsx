@@ -63,12 +63,11 @@ export function StaffPortalView({ initialDisplayName }: StaffPortalViewProps) {
     };
   }, []);
 
-  // Refresh on skill changes immediately, with a one-second fallback for reconnects.
+  // Refresh immediately on skill changes; all other data changes arrive through the salon invalidation channel.
   useEffect(() => {
     loadQueue();
-    const interval = setInterval(loadQueue, 1000);
     const unsubscribe = subscribeToStaffSkillChanges(loadQueue);
-    return () => { clearInterval(interval); unsubscribe(); };
+    return () => { unsubscribe(); };
   }, []);
 
   // Undo timer countdown

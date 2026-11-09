@@ -42,8 +42,6 @@ export function ReceptionCustomerTabletView() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadSession, 3000);
-    return () => clearInterval(interval);
   }, []);
 
   async function loadData() {
@@ -63,7 +61,8 @@ export function ReceptionCustomerTabletView() {
       setSession(res.data);
     }
   }
-  useSalonLiveRefresh(() => { void loadSession(); });
+  useSalonLiveRefresh(() => { void loadSession(); }, true, ['desk_session', 'device']);
+  useSalonLiveRefresh(() => { void getCatalogueAction().then((result) => { if (result.success) setCatalogue(result.data.services); }); }, true, ['service', 'service_variant']);
 
 
   async function handlePushCategory() {

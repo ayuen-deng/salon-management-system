@@ -59,7 +59,7 @@ export function ReceptionClosePrepView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadData(); });
+  useSalonLiveRefresh(() => { void loadData(); }, true, ['visit', 'payment', 'business_day', 'audit_log']);
 
 
   async function handleSubmitCount(e: React.FormEvent) {
