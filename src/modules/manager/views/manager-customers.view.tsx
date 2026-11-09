@@ -36,7 +36,7 @@ export function ManagerCustomersView() {
     }
     setLoading(false);
   };
-  useSalonLiveRefresh(() => { void loadCustomers(); });
+  useSalonLiveRefresh(() => { void loadCustomers(); }, true, ['customer', 'app_setting']);
 
 
   useEffect(() => {

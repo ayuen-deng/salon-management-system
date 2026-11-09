@@ -26,7 +26,7 @@ export function OwnerCustomersView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadCustomers(); });
+  useSalonLiveRefresh(() => { void loadCustomers(); }, true, ['customer', 'visit']);
 
 
   function handleExportProfile(name: string) {
