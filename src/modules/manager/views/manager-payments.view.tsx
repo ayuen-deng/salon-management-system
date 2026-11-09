@@ -52,7 +52,7 @@ export function ManagerPaymentsView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadPayments(); });
+  useSalonLiveRefresh(() => { void loadPayments(); }, true, ['payment', 'business_day', 'visit', 'app_user']);
 
 
   async function handleRecordPayment() {

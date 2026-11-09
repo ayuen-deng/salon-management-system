@@ -99,7 +99,7 @@ export function ManagerDayView() {
       setLoading(false);
     }
   };
-  useSalonLiveRefresh(() => { void loadAll(); });
+  useSalonLiveRefresh(() => { void loadAll(); }, true, ['business_day', 'payment', 'statement_import', 'reconciliation_entry', 'visit', 'audit_log']);
 
 
   useEffect(() => {

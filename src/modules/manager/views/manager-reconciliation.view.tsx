@@ -31,7 +31,7 @@ export function ManagerReconciliationView() {
     }
     setLoading(false);
   };
-  useSalonLiveRefresh(() => { void loadReconciliation(); });
+  useSalonLiveRefresh(() => { void loadReconciliation(); }, true, ['business_day', 'payment', 'statement_import', 'reconciliation_entry']);
 
 
   useEffect(() => {
