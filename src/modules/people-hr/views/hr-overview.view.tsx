@@ -91,7 +91,7 @@ export function HrOverviewView() {
       setLoading(false);
     }
   };
-  useSalonLiveRefresh(() => { void loadData(); });
+  useSalonLiveRefresh(() => { void loadData(); }, true, ['app_user', 'attendance', 'leave_request', 'rota_entry', 'work_hours_policy', 'audit_log', 'hr_people_access_audit']);
 
 
   useEffect(() => {

@@ -60,7 +60,7 @@ export function HrAccessView() {
     if (devRes.success && devRes.data) setDevices(devRes.data);
     setLoading(false);
   };
-  useSalonLiveRefresh(() => { void loadData(); });
+  useSalonLiveRefresh(() => { void loadData(); }, true, ['app_user', 'staff_skill', 'service', 'app_setting', 'audit_log', 'device']);
 
 
   useEffect(() => {

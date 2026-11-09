@@ -105,7 +105,7 @@ export function HrStaffView() {
     }
     setLoading(false);
   };
-  useSalonLiveRefresh(() => { void loadData(); });
+  useSalonLiveRefresh(() => { void loadData(); }, true, ['app_user', 'staff_skill', 'service', 'app_setting']);
 
 
   useEffect(() => {

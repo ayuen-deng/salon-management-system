@@ -73,7 +73,7 @@ export function OwnerStaffView() {
     setLoading(false);
   }, [range]);
 
-  useSalonLiveRefresh(() => { void load(); });
+  useSalonLiveRefresh(() => { void load(); }, true, ['app_user', 'business_day', 'visit', 'visit_service', 'service_variant', 'service', 'payment', 'payment_adjustment', 'attendance', 'rota_entry', 'work_hours_policy', 'leave_request', 'app_setting']);
 
   useEffect(() => { void load(); }, [load]);
 

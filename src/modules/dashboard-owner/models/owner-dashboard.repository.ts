@@ -10,7 +10,9 @@ export interface OwnerActivityVisitDetail {
   services: string[];
   stylist_name?: string;
   queued_at_str?: string;
+  queued_at_iso?: string;
   started_at_str?: string;
+  started_at_iso?: string;
   completed_at_str?: string;
   duration_minutes?: number;
   elapsed_minutes?: number;
@@ -335,7 +337,9 @@ export class OwnerDashboardRepository {
             services: serviceNames.length > 0 ? serviceNames : ['Service'],
             stylist_name: stylistStr,
             queued_at_str: queuedAtStr,
+            queued_at_iso: v.queued_at || undefined,
             started_at_str: startedAtStr,
+            started_at_iso: firstStartedLine?.started_at || undefined,
             completed_at_str: completedAtStr,
             duration_minutes: durationMins,
             elapsed_minutes: elapsedMins,

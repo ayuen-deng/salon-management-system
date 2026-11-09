@@ -120,7 +120,7 @@ export function HrPerformanceView() {
     setDetailLoading(false);
   }, [range, role]);
 
-  useSalonLiveRefresh(() => { void loadReport(); });
+  useSalonLiveRefresh(() => { void loadReport(); }, true, ['app_user', 'business_day', 'visit', 'visit_service', 'service_variant', 'service', 'payment', 'payment_adjustment', 'attendance', 'rota_entry', 'work_hours_policy', 'leave_request', 'app_setting']);
 
   useEffect(() => { void loadReport(); }, [loadReport]);
 

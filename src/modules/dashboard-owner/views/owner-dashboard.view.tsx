@@ -23,6 +23,7 @@ export function OwnerDashboardView() {
   const [data, setData] = useState<OwnerDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatedAt, setUpdatedAt] = useState<string>('');
+  const [clockNow, setClockNow] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const [reviewTab, setReviewTab] = useState<'to_review' | 'seen'>('to_review');
   const [selectedReviewItem, setSelectedReviewItem] = useState<OwnerDashboardData['review_items'][0] | null>(null);
@@ -44,14 +45,25 @@ export function OwnerDashboardView() {
     }
     setLoading(false);
   }
-  useSalonLiveRefresh(() => { void loadData(); });
+  useSalonLiveRefresh(() => { void loadData(); }, true, ['business_day', 'payment', 'visit', 'visit_service', 'appointment', 'app_user', 'customer', 'service', 'attendance', 'rota_entry', 'work_hours_policy', 'leave_request', 'audit_log', 'owner_review_seen']);
 
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 15000);
+    setClockNow(Date.now());
+    const interval = setInterval(() => setClockNow(Date.now()), 15000);
     return () => clearInterval(interval);
   }, []);
+
+  const queuedWaits = (clockNow === null ? [] : data?.details.activity_visits || [])
+    .filter((visit) => visit.status === 'queued' && visit.queued_at_iso)
+    .map((visit) => Math.max(0, Math.round((clockNow! - new Date(visit.queued_at_iso!).getTime()) / 60000)));
+  const averageWaitMinutes = queuedWaits.length
+    ? Math.round(queuedWaits.reduce((total, minutes) => total + minutes, 0) / queuedWaits.length)
+    : data?.activity.avg_wait_minutes ?? 0;
+  const longestWaitMinutes = queuedWaits.length
+    ? Math.max(...queuedWaits)
+    : data?.activity.longest_wait_minutes ?? 0;
 
   function handleMarkSeen(itemId: string) {
     if (!data) return;
@@ -670,11 +682,11 @@ export function OwnerDashboardView() {
             </div>
             <div>
               <span className="text-[10px] text-slate-500 block">Average Wait</span>
-              <span className="font-bold text-slate-900 text-sm tabular-nums">~{data.activity.avg_wait_minutes}m</span>
+              <span className="font-bold text-slate-900 text-sm tabular-nums">~{averageWaitMinutes}m</span>
             </div>
             <div>
               <span className="text-[10px] text-slate-500 block">Longest Wait</span>
-              <span className="font-bold text-slate-900 text-sm tabular-nums">{data.activity.longest_wait_minutes}m</span>
+              <span className="font-bold text-slate-900 text-sm tabular-nums">{longestWaitMinutes}m</span>
             </div>
           </div>
 
@@ -743,7 +755,7 @@ export function OwnerDashboardView() {
                         <span>Waiting since {v.queued_at_str}</span>
                       )}
                       {v.status === 'in_service' && v.started_at_str && (
-                        <span>Started {v.started_at_str} (~{v.elapsed_minutes}m)</span>
+                        <span>Started {v.started_at_str} (~{clockNow !== null && v.started_at_iso ? Math.max(0, Math.round((clockNow - new Date(v.started_at_iso).getTime()) / 60000)) : v.elapsed_minutes ?? 0}m)</span>
                       )}
                       {['ready_for_checkout', 'completed'].includes(v.status) && v.completed_at_str && (
                         <span>Done {v.completed_at_str} ({v.duration_minutes}m)</span>

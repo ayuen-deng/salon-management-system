@@ -85,7 +85,7 @@ export function HrLeaveView() {
     if (balanceRes.success && balanceRes.data) setBalances(balanceRes.data);
     setLoading(false);
   };
-  useSalonLiveRefresh(() => { void loadData(); });
+  useSalonLiveRefresh(() => { void loadData(); }, true, ['app_user', 'staff_skill', 'service', 'app_setting', 'leave_request', 'annual_leave_policy', 'annual_leave_entitlement_override', 'attendance', 'rota_entry', 'work_hours_policy']);
 
 
   useEffect(() => {
