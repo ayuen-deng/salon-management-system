@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSalonLiveRefresh } from '@/shared/lib/salon-live-updates';
+import { subscribeToKioskBusinessDayChanges } from '@/shared/lib/salon-live-updates';
 import { formatUGX } from '@/shared/models/money';
 import { isValidUgPhone } from '@/shared/models/phone';
 import { fetchKioskCatalogueAction, ServiceItem, ServiceVariant } from '@/modules/catalogue';
@@ -247,8 +248,20 @@ export function DeskTabletView() {
       } finally { checking = false; }
     };
     void checkDay();
-    const interval = window.setInterval(() => { void checkDay(); }, 900);
-    return () => { disposed = true; window.clearInterval(interval); };
+    const unsubscribe = subscribeToKioskBusinessDayChanges(() => { void checkDay(); });
+    const interval = window.setInterval(() => { void checkDay(); }, 30_000);
+    const handleResume = () => { if (document.visibilityState === 'visible') void checkDay(); };
+    window.addEventListener('focus', handleResume);
+    document.addEventListener('visibilitychange', handleResume);
+    window.addEventListener('online', handleResume);
+    return () => {
+      disposed = true;
+      unsubscribe();
+      window.clearInterval(interval);
+      window.removeEventListener('focus', handleResume);
+      document.removeEventListener('visibilitychange', handleResume);
+      window.removeEventListener('online', handleResume);
+    };
   }, [sessionToken]);
 
   const handleCreateOrder = async () => {

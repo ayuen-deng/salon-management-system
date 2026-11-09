@@ -39,6 +39,19 @@ export function subscribeToSalonLiveChanges(onChange: (change: SalonChange) => v
   return () => { void client.removeChannel(channel); };
 }
 
+/** Public kiosk signal carries no row data; paired tablets can refresh day status without staff auth. */
+export function subscribeToKioskBusinessDayChanges(onChange: () => void) {
+  const client = getBrowserClient();
+  if (!client) return () => {};
+
+  const channel = client
+    .channel('salon:kiosk-day-status', { config: { private: false } })
+    .on('broadcast', { event: 'business_day_status_changed' }, () => onChange())
+    .subscribe();
+
+  return () => { void client.removeChannel(channel); };
+}
+
 /** Refresh this view's server-backed data without remounting forms or pending actions. */
 export function useSalonLiveRefresh(
   refresh: () => void,
