@@ -8,6 +8,12 @@ The staging database passed all 58 pgTAP assertions across nine SQL files. Supab
 
 The app built successfully with all 73 routes and `/api/health` reported a connected staging database. Lint, TypeScript, architecture, loading-boundary, audit-registry, and design-token checks passed. Vitest passed all 46 tests when run with staging selected.
 
+## Latest performance continuation (2026-11-11)
+
+HR attendance now defers work-hours policy loading until that tab is selected; reception visit loading debounces searches and fetches visit lists and pending kiosk orders in parallel while ignoring stale responses. A 20-run authenticated desktop staging retest measured HR content p95 at 5.75 s (down from 10.40 s) and reception visits at 7.30 s (down from 9.83 s). Reception first visual/LCP p95 was 0.84 s; HR first visual p95 was 2.51 s and LCP p95 3.78 s. Both content p95 values still exceed the 2.0 s budget. Details and raw samples are in `docs/PERFORMANCE.md` and `artifacts/performance/staging-hr-reception-after-optimization.json`.
+
+The temporary staging review server has been stopped. Remaining validation is still open for slow protected-route content tails, authenticated revisit/cache isolation, Vercel preview, production telemetry and query plans, dev-versus-production memory/hot reload, and a confirmed GitHub Actions run. No claim that every phase or performance target is complete.
+
 ## Remaining performance work
 
 The five-phase performance effort is not fully complete. A 20-run authenticated five-role desktop sample is saved at `artifacts/performance/staging-authenticated-desktop.json`. It showed content p95 misses for manager (3.92 s), HR (10.40 s), receptionist visits (9.83 s), and staff (2.74 s); owner readiness was initially misdetected because its live status dot pulses continuously. The baseline also showed long action tails for reception (4.29 s) and manager (2.33 s).

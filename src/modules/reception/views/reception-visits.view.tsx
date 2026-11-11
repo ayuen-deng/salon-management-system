@@ -1,7 +1,7 @@
 'use client';
 
 import { useSalonLiveRefresh } from '@/shared/lib/salon-live-updates';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/shared/views/ui/card';
 import { Button } from '@/shared/views/ui/button';
@@ -38,6 +38,7 @@ export function ReceptionVisitsView() {
   const [tab, setTab] = useState<'active' | 'today' | 'history' | 'awaiting'>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const loadSequence = useRef(0);
 
   const [activeVisits, setActiveVisits] = useState<ReceptionQueueItem[]>([]);
   const [completedTodayVisits, setCompletedTodayVisits] = useState<ReceptionQueueItem[]>([]);
@@ -67,17 +68,21 @@ export function ReceptionVisitsView() {
   const [requestSuccess, setRequestSuccess] = useState(false);
 
   useEffect(() => {
-    loadData();
+    const timer = window.setTimeout(() => { void loadData(searchQuery); }, 250);
+    return () => window.clearTimeout(timer);
   }, [searchQuery]);
 
-  async function loadData() {
-    const res = await getVisitsTabsDataAction(searchQuery);
+  async function loadData(query = searchQuery) {
+    const requestId = ++loadSequence.current;
+    const [res, orders] = await Promise.all([
+      getVisitsTabsDataAction(query),
+      getPendingKioskOrdersAction(),
+    ]);
+    if (requestId !== loadSequence.current) return;
     if (res.success) {
       setActiveVisits(res.data.active);
       setCompletedTodayVisits(res.data.completedToday);
       setHistoryVisits(res.data.history);
-      const orders = await getPendingKioskOrdersAction();
-      if (orders.success) setAwaitingOrders(orders.data);
       setTodayTotals(res.data.today_totals);
 
       // Keep selected visit updated if open
@@ -87,6 +92,7 @@ export function ReceptionVisitsView() {
         if (match) setSelectedVisit(match);
       }
     }
+    if (orders.success) setAwaitingOrders(orders.data);
     setLoading(false);
   }
   useSalonLiveRefresh(() => { void loadData(); }, true, [

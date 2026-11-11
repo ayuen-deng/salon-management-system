@@ -202,6 +202,14 @@ Outside-code follow-up: confirm the production Supabase region and configure the
 
 Accordingly, **the five-phase performance project is not finished**. The local and staging database checks pass, and the Realtime dependency audit has been applied; authenticated navigation performance still misses its target. Vercel preview measurements and production telemetry/query evidence require configured external environments that are not present in this checkout. No claim of system-wide budget compliance is made.
 
+### Staging HR and reception follow-up (2026-11-11)
+
+- HR attendance now defers the work-hours policy read until its policy tab is opened. Leave balances and policy refresh independently from the HR attendance data, so opening attendance no longer loads an unrelated policy section.
+- Reception visit searches now debounce by 250 ms, load selected visit lists and pending kiosk orders concurrently, and discard stale responses from earlier searches.
+- Authenticated, cold-cache desktop staging retest: 20 runs each for `/hr/attendance` and `/reception/visits`, using synthetic HR and receptionist sessions. HR measured first visual p95 **2.51 s**, LCP p95 **3.78 s**, and content p95 **5.75 s**. Reception measured first visual/LCP p95 **0.84 s**, and content p95 **7.30 s**. The updated reception p95 improved from **9.83 s** to **7.30 s**, and HR from **10.40 s** to **5.75 s**; both still exceed the 2.0 s content budget. Raw samples: `artifacts/performance/staging-hr-reception-after-optimization.json`.
+- The full authenticated comparison ran locally against hosted **staging**, not Vercel or production. It is not a staging-database query plan or production telemetry result. The remaining long content tails need action-level profiling before another change is selected.
+- The browser harness required local Edge access; the session preparation and timing pass completed. No payment or kiosk order was submitted. The temporary staging review server was stopped after the run.
+
 ### Phase 3 local database checkpoint (2026-11-08)
 
 The preceding prerequisite note records the earlier blocked attempt. Docker Desktop is now installed and running. Phase 3 work below used only the local Supabase stack on Docker; the linked hosted salon project was not pushed to, seeded, or mutated.

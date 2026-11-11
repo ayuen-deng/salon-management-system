@@ -76,18 +76,26 @@ export function HrAttendanceView() {
   };
 
   const loadPolicy = async () => {
-    const [policyRes, balanceRes] = await Promise.all([getWorkHoursPolicyAction(), getLeaveBalancesAction()]);
+    const policyRes = await getWorkHoursPolicyAction();
     if (policyRes.success && policyRes.data) setWorkPolicy(policyRes.data);
+  };
+  const loadLeaveBalances = async () => {
+    const balanceRes = await getLeaveBalancesAction();
     if (balanceRes.success && balanceRes.data) setLeaveBalances(balanceRes.data);
   };
-  useSalonLiveRefresh(() => { void loadPolicy(); }, true, ['work_hours_policy', 'hr_leave_balance', 'leave_request', 'annual_leave_policy']);
+  useSalonLiveRefresh(() => { if (activeTab === 'working-hours') void loadPolicy(); }, true, ['work_hours_policy']);
+  useSalonLiveRefresh(() => { void loadLeaveBalances(); }, true, ['hr_leave_balance', 'leave_request', 'annual_leave_policy']);
   useSalonLiveRefresh(() => { void loadData(); }, true, ['attendance', 'app_user', 'rota_entry', 'business_day', 'work_hours_policy']);
 
 
   useEffect(() => {
     loadData();
-    loadPolicy();
+    loadLeaveBalances();
   }, [roleFilter, period, customStart, customEnd, staffFilter]);
+
+  useEffect(() => {
+    if (activeTab === 'working-hours') void loadPolicy();
+  }, [activeTab]);
 
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
