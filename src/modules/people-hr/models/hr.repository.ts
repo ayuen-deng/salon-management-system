@@ -188,38 +188,36 @@ export class HrRepository {
   async getHrBadges(): Promise<Result<{ pendingRevocations: number; pendingLeave: number }>> {
     try {
       const client = getServiceRoleClient();
+      // Fetch the independent badge sources together instead of serializing
+      // the leave count behind the first access-audit query.
+      const [revocationResult, leaveResult] = await Promise.all([
+        client.from('audit_log')
+          .select('entity_id')
+          .eq('category', 'access')
+          .eq('action', 'MANAGER_REVOKE_STAFF'),
+        client.from('leave_request')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'requested'),
+      ]);
+      if (revocationResult.error) return fail({ code: 'INTERNAL_ERROR', message: revocationResult.error.message });
+      if (leaveResult.error) return fail({ code: 'INTERNAL_ERROR', message: leaveResult.error.message });
 
-      // 1. Pending manager revocations awaiting HR confirmation
-      const { data: revAudit } = await client
-        .from('audit_log')
-        .select('id, entity_id')
-        .eq('category', 'access')
-        .eq('action', 'MANAGER_REVOKE_STAFF');
-
-      let pendingRevocations = 0;
-      for (const rev of revAudit || []) {
-        // check if already confirmed or reversed by HR
-        const { data: hrAction } = await client
-          .from('audit_log')
-          .select('id')
-          .in('action', ['HR_CONFIRM_REVOCATION', 'HR_REVERSE_REVOCATION'])
-          .eq('entity_id', rev.entity_id)
-          .maybeSingle();
-
-        if (!hrAction) {
-          pendingRevocations++;
-        }
-      }
-
-      // 2. Pending leave
-      const { count: leaveCount } = await client
-        .from('leave_request')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'requested');
+      // Check every affected staff entity in one batched audit read. The
+      // badge counts unresolved entities, not duplicate append-only events.
+      const entityIds = [...new Set((revocationResult.data || []).map((row) => row.entity_id).filter(Boolean))];
+      const resolutionResult = entityIds.length
+        ? await client.from('audit_log')
+            .select('entity_id')
+            .in('action', ['HR_CONFIRM_REVOCATION', 'HR_REVERSE_REVOCATION'])
+            .in('entity_id', entityIds)
+        : { data: [], error: null };
+      if (resolutionResult.error) return fail({ code: 'INTERNAL_ERROR', message: resolutionResult.error.message });
+      const resolvedEntities = new Set((resolutionResult.data || []).map((row) => row.entity_id));
+      const pendingRevocations = entityIds.filter((entityId) => !resolvedEntities.has(entityId)).length;
 
       return ok({
         pendingRevocations,
-        pendingLeave: leaveCount || 0,
+        pendingLeave: leaveResult.count || 0,
       });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error fetching HR badges';

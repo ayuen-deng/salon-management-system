@@ -1,6 +1,10 @@
 # Handoff Status
 
-## Current state (2026-11-09)
+## Current state (2026-11-12)
+
+Latest local/staging continuation is recorded in `docs/PERFORMANCE.md` under “Authenticated staging performance continuation (2026-11-12)”. The HR badge N+1 read was batched; Reception visits now loads kiosk orders independently and filters history search locally. The optimized build produced all 73 routes. Fresh 20-run staging-backed desktop content p95 is 3.80 s for HR attendance and 4.07 s for Reception visits. A separate 10-run revisit sample covers all five roles, but HR/reception/manager/staff transitions and several cold content tails still exceed the stated budgets. The exact 20-run kiosk CI performance gate passed locally on Uganda 4G and slow 3G; slow-3G LCP has just 40 ms of headroom. Raw measurements are in `artifacts/performance/staging-hr-reception-final.json`, `artifacts/performance/staging-authenticated-revisit-final.json`, and `artifacts/performance/ci-kiosk-2026-11-12.json`.
+
+**The remaining performance phases are not all complete.** Phase 3 local/staging database validation is complete; production plans and telemetry are not. Phase 4 measurements are expanded, but authenticated content and revisit budgets still fail. Phase 5 local guardrail verification is available; Vercel preview, a confirmed remote GitHub Actions result, and production telemetry are not accessible/configured in this checkout. No production data was changed. The review server is stopped after this validation.
 
 The dedicated Supabase project `mzuri-staging` (`afruqwkujvweojbuqjeq`) is provisioned separately from the salon production project. All 34 local migrations are present in its remote migration ledger, and the three PIN Edge Functions are active there. Staging configuration and database credentials are kept in the ignored `.env.staging.local` file.
 

@@ -39,6 +39,8 @@ export function ReceptionVisitsView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const loadSequence = useRef(0);
+  const orderLoadSequence = useRef(0);
+  const [loadingOrders, setLoadingOrders] = useState(true);
 
   const [activeVisits, setActiveVisits] = useState<ReceptionQueueItem[]>([]);
   const [completedTodayVisits, setCompletedTodayVisits] = useState<ReceptionQueueItem[]>([]);
@@ -68,16 +70,14 @@ export function ReceptionVisitsView() {
   const [requestSuccess, setRequestSuccess] = useState(false);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => { void loadData(searchQuery); }, 250);
-    return () => window.clearTimeout(timer);
-  }, [searchQuery]);
+    void loadData();
+    void loadAwaitingOrders();
+  }, []);
 
-  async function loadData(query = searchQuery) {
+  async function loadData() {
     const requestId = ++loadSequence.current;
-    const [res, orders] = await Promise.all([
-      getVisitsTabsDataAction(query),
-      getPendingKioskOrdersAction(),
-    ]);
+    setLoading(true);
+    const res = await getVisitsTabsDataAction();
     if (requestId !== loadSequence.current) return;
     if (res.success) {
       setActiveVisits(res.data.active);
@@ -86,19 +86,25 @@ export function ReceptionVisitsView() {
       setTodayTotals(res.data.today_totals);
 
       // Keep selected visit updated if open
-      if (selectedVisit) {
-        const all = [...res.data.active, ...res.data.completedToday, ...res.data.history];
-        const match = all.find((v) => v.id === selectedVisit.id);
-        if (match) setSelectedVisit(match);
-      }
+      const all = [...res.data.active, ...res.data.completedToday, ...res.data.history];
+      setSelectedVisit((current) => current ? all.find((v) => v.id === current.id) || current : current);
     }
-    if (orders.success) setAwaitingOrders(orders.data);
     setLoading(false);
+  }
+
+  async function loadAwaitingOrders() {
+    const requestId = ++orderLoadSequence.current;
+    setLoadingOrders(true);
+    const orders = await getPendingKioskOrdersAction();
+    if (requestId !== orderLoadSequence.current) return;
+    if (orders.success) setAwaitingOrders(orders.data);
+    setLoadingOrders(false);
   }
   useSalonLiveRefresh(() => { void loadData(); }, true, [
     'visit', 'visit_service', 'payment', 'receipt', 'business_day', 'customer',
-    'app_user', 'service_variant', 'service', 'kiosk_order_request',
+    'app_user', 'service_variant', 'service',
   ]);
+  useSalonLiveRefresh(() => { void loadAwaitingOrders(); }, true, ['kiosk_order_request']);
 
 
   async function handleOpenReprint(visit: ReceptionQueueItem) {
@@ -150,6 +156,16 @@ export function ReceptionVisitsView() {
       : tab === 'today'
       ? completedTodayVisits
       : historyVisits;
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const searchDigits = normalizedSearch.replace(/[^0-9]/g, '');
+  const displayedList = tab === 'history' && normalizedSearch
+    ? currentList.filter((visit) => {
+        const phoneDigits = (visit.phone_e164 || '').replace(/[^0-9]/g, '');
+        return visit.customer_name.toLowerCase().includes(normalizedSearch)
+          || visit.ticket_code.toLowerCase().includes(normalizedSearch)
+          || Boolean(searchDigits && phoneDigits.includes(searchDigits));
+      })
+    : currentList;
   const filteredAwaiting = awaitingOrders.filter((order) => `${order.order_code} ${order.phone} ${order.first_name}`.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
@@ -279,9 +295,9 @@ export function ReceptionVisitsView() {
       {/* 3. Main Visits Table */}
       {tab === 'awaiting' ? (
         <Card className="rounded-2xl border-[#E2E7EF] shadow-xs bg-white overflow-hidden">
-          <CardHeader className="p-4 border-b border-[#E2E7EF] bg-[#F6F8FB]/50 flex flex-row items-center justify-between"><CardTitle className="text-sm font-semibold text-[#0A0E14]">Kiosk orders awaiting payment ({filteredAwaiting.length})</CardTitle><Link href="/reception/kiosk-orders" className="text-xs font-semibold text-blue-700 hover:underline">Open kiosk orders page</Link></CardHeader>
+          <CardHeader className="p-4 border-b border-[#E2E7EF] bg-[#F6F8FB]/50 flex flex-row items-center justify-between"><CardTitle className="text-sm font-semibold text-[#0A0E14]">Kiosk orders awaiting payment ({loadingOrders ? '…' : filteredAwaiting.length})</CardTitle><Link href="/reception/kiosk-orders" className="text-xs font-semibold text-blue-700 hover:underline">Open kiosk orders page</Link></CardHeader>
           <CardContent className="p-0 overflow-x-auto">
-            {loading ? <div className="p-12 text-center text-xs text-[#566174] animate-pulse">Loading kiosk orders…</div> : filteredAwaiting.length === 0 ? <div className="p-12 text-center text-xs text-[#566174]">No kiosk orders are waiting for payment.</div> : (
+            {loadingOrders ? <div className="p-12 text-center text-xs text-[#566174] animate-pulse">Loading kiosk orders…</div> : filteredAwaiting.length === 0 ? <div className="p-12 text-center text-xs text-[#566174]">No kiosk orders are waiting for payment.</div> : (
               <table className="w-full text-left text-xs"><thead className="bg-[#F6F8FB] text-[#566174] font-semibold"><tr><th className="p-3">Order</th><th className="p-3">First name</th><th className="p-3">Phone</th><th className="p-3">Services</th><th className="p-3 text-right">Estimated total</th><th className="p-3">Waiting since</th></tr></thead><tbody className="divide-y divide-[#E2E7EF]">{filteredAwaiting.map((order) => <tr key={order.id}><td className="p-3 font-bold text-[#1F4FD8]">{order.order_code}</td><td className="p-3">{order.first_name}</td><td className="p-3 tabular-nums">{formatUgPhoneDisplay(order.phone)}</td><td className="p-3">{order.lines.map((line) => line.variant_name).join(', ')}</td><td className="p-3 text-right font-semibold">{formatUGX(order.total_ugx)}</td><td className="p-3">{new Date(order.created_at).toLocaleString('en-UG')}</td></tr>)}</tbody></table>
             )}
           </CardContent>
@@ -296,7 +312,7 @@ export function ReceptionVisitsView() {
               : 'Visit History Records'}
           </CardTitle>
           <span className="text-xs font-medium text-[#566174]">
-            {currentList.length} {currentList.length === 1 ? 'visit' : 'visits'} listed
+            {displayedList.length} {displayedList.length === 1 ? 'visit' : 'visits'} listed
           </span>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
@@ -304,7 +320,7 @@ export function ReceptionVisitsView() {
             <div className="p-12 text-center text-xs text-[#566174] animate-pulse">
               Loading salon visits...
             </div>
-          ) : currentList.length === 0 ? (
+          ) : displayedList.length === 0 ? (
             <div className="p-12 text-center text-xs text-[#566174] space-y-2">
               <Scissors className="w-8 h-8 text-slate-300 mx-auto" />
               <p>No visits found matching current filter or search.</p>
@@ -323,7 +339,7 @@ export function ReceptionVisitsView() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E2E7EF] font-medium">
-                {currentList.map((v) => (
+              {displayedList.map((v) => (
                   <tr
                     key={v.id}
                     onClick={() => setSelectedVisit(v)}
