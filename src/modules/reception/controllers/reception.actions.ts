@@ -261,8 +261,8 @@ export async function logCustomerProfilePdfExportAction(customerId: string) {
   return receptionRepo.logCustomerProfilePdfExport(customerId, userId);
 }
 
-export async function getVisitsTabsDataAction(search?: string, dateRange?: { start?: string; end?: string }) {
-  return receptionRepo.getVisitsTabsData(search, dateRange);
+export async function getVisitsTabsDataAction(search?: string, dateRange?: { start?: string; end?: string }, mode: 'current' | 'today' | 'history' = 'current') {
+  return receptionRepo.getVisitsTabsData(search, dateRange, mode);
 }
 
 export async function getClosePrepDataAction() {

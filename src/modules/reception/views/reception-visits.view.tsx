@@ -38,6 +38,9 @@ export function ReceptionVisitsView() {
   const [tab, setTab] = useState<'active' | 'today' | 'history' | 'awaiting'>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [todayLoading, setTodayLoading] = useState(true);
   const loadSequence = useRef(0);
   const orderLoadSequence = useRef(0);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -71,25 +74,49 @@ export function ReceptionVisitsView() {
 
   useEffect(() => {
     void loadData();
+    void loadTodaySummary();
     void loadAwaitingOrders();
   }, []);
+
+  useEffect(() => {
+    if (tab === 'history' && !historyLoaded) void loadHistory();
+  }, [tab, historyLoaded]);
 
   async function loadData() {
     const requestId = ++loadSequence.current;
     setLoading(true);
-    const res = await getVisitsTabsDataAction();
+    const res = await getVisitsTabsDataAction(undefined, undefined, 'current');
     if (requestId !== loadSequence.current) return;
     if (res.success) {
       setActiveVisits(res.data.active);
-      setCompletedTodayVisits(res.data.completedToday);
-      setHistoryVisits(res.data.history);
-      setTodayTotals(res.data.today_totals);
 
       // Keep selected visit updated if open
-      const all = [...res.data.active, ...res.data.completedToday, ...res.data.history];
+      const all = [...res.data.active, ...completedTodayVisits, ...historyVisits];
       setSelectedVisit((current) => current ? all.find((v) => v.id === current.id) || current : current);
     }
     setLoading(false);
+  }
+
+  async function loadTodaySummary() {
+    setTodayLoading(true);
+    const res = await getVisitsTabsDataAction(undefined, undefined, 'today');
+    if (res.success) {
+      setCompletedTodayVisits(res.data.completedToday);
+      setTodayTotals(res.data.today_totals);
+      const all = [...activeVisits, ...res.data.completedToday, ...historyVisits];
+      setSelectedVisit((current) => current ? all.find((v) => v.id === current.id) || current : current);
+    }
+    setTodayLoading(false);
+  }
+
+  async function loadHistory() {
+    setHistoryLoading(true);
+    const res = await getVisitsTabsDataAction(undefined, undefined, 'history');
+    if (res.success) {
+      setHistoryVisits(res.data.history);
+      setHistoryLoaded(true);
+    }
+    setHistoryLoading(false);
   }
 
   async function loadAwaitingOrders() {
@@ -100,7 +127,11 @@ export function ReceptionVisitsView() {
     if (orders.success) setAwaitingOrders(orders.data);
     setLoadingOrders(false);
   }
-  useSalonLiveRefresh(() => { void loadData(); }, true, [
+  useSalonLiveRefresh(() => {
+    void loadData();
+    void loadTodaySummary();
+    if (historyLoaded) void loadHistory();
+  }, true, [
     'visit', 'visit_service', 'payment', 'receipt', 'business_day', 'customer',
     'app_user', 'service_variant', 'service',
   ]);
@@ -180,7 +211,7 @@ export function ReceptionVisitsView() {
             </span>
           </div>
           <div className="text-2xl font-bold text-[#0A0E14] mt-2 tabular-nums">
-            {todayTotals.paid_count}
+            {todayLoading ? '—' : todayTotals.paid_count}
           </div>
           <p className="text-[11px] text-[#566174] mt-1">
             {activeVisits.length} currently active in salon
@@ -195,7 +226,7 @@ export function ReceptionVisitsView() {
             </span>
           </div>
           <div className="text-2xl font-bold text-[#0A0E14] mt-2 tabular-nums">
-            {formatUGX(todayTotals.cash_ugx)}
+            {todayLoading ? '—' : formatUGX(todayTotals.cash_ugx)}
           </div>
           <p className="text-[11px] text-[#566174] mt-1">Physical drawer intake</p>
         </Card>
@@ -208,7 +239,7 @@ export function ReceptionVisitsView() {
             </span>
           </div>
           <div className="text-2xl font-bold text-[#0A0E14] mt-2 tabular-nums">
-            {formatUGX(todayTotals.momo_ugx)}
+            {todayLoading ? '—' : formatUGX(todayTotals.momo_ugx)}
           </div>
           <p className="text-[11px] text-amber-600 font-medium mt-1">
             Not yet verified against bank feed
@@ -223,7 +254,7 @@ export function ReceptionVisitsView() {
             </span>
           </div>
           <div className="text-2xl font-black text-[#0A0E14] mt-2 tabular-nums">
-            {formatUGX(todayTotals.total_ugx)}
+            {todayLoading ? '—' : formatUGX(todayTotals.total_ugx)}
           </div>
           <p className="text-[11px] text-[#566174] mt-1">Pre-paid gross takings today</p>
         </Card>
@@ -257,7 +288,7 @@ export function ReceptionVisitsView() {
                 : 'text-[#566174] hover:text-[#0A0E14]'
             }`}
           >
-            Completed Today ({completedTodayVisits.length})
+            Completed Today ({todayLoading ? '…' : completedTodayVisits.length})
           </button>
           <button
             onClick={() => setTab('history')}
@@ -316,7 +347,7 @@ export function ReceptionVisitsView() {
           </span>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
-          {loading ? (
+          {loading || (tab === 'today' && todayLoading) || (tab === 'history' && historyLoading) ? (
             <div className="p-12 text-center text-xs text-[#566174] animate-pulse">
               Loading salon visits...
             </div>

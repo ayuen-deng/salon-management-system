@@ -1192,7 +1192,7 @@ export class ReceptionOperationsRepository {
     }
   }
 
-  async getVisitsTabsData(search?: string, dateRange?: { start?: string; end?: string }): Promise<Result<{
+  async getVisitsTabsData(search?: string, dateRange?: { start?: string; end?: string }, mode: 'current' | 'today' | 'history' = 'current'): Promise<Result<{
     active: ReceptionQueueItem[];
     completedToday: ReceptionQueueItem[];
     history: ReceptionQueueItem[];
@@ -1200,6 +1200,8 @@ export class ReceptionOperationsRepository {
   }>> {
     try {
       const client = getServiceRoleClient();
+      const bdayRes = mode === 'today' ? await this.getBusinessDayStatus() : undefined;
+      const bdayId = bdayRes?.success ? bdayRes.data.business_day_id : undefined;
       const q = client
         .from('visit')
         .select(`
@@ -1216,14 +1218,29 @@ export class ReceptionOperationsRepository {
           receipt ( print_count )
         `)
         .order('created_at', { ascending: false });
-      // The business-day lookup and visit list are independent reads. Start
-      // both together so the first reception render pays one network round trip
-      // instead of waiting for the day lookup before requesting visits.
-      const [bdayRes, { data: allVisitsRaw, error: vErr }] = await Promise.all([
-        this.getBusinessDayStatus(),
-        q,
-      ]);
-      const bdayId = bdayRes.success ? bdayRes.data.business_day_id : undefined;
+      // The reception landing view needs active work and today's completions,
+      // not every historical visit with all its nested lines and payments.
+      // Load the full history only after the user opens that tab.
+      const visitQuery = mode === 'current'
+        ? q.in('status', ['queued', 'in_service', 'payment_pending'])
+        : mode === 'today'
+          ? bdayId
+            ? q.eq('business_day_id', bdayId).in('status', ['paid', 'closed'])
+            : (() => {
+                const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Kampala' });
+                const start = new Date(`${today}T00:00:00+03:00`).toISOString();
+                const end = new Date(new Date(start).getTime() + 24 * 60 * 60 * 1000).toISOString();
+                return q.in('status', ['paid', 'closed']).gte('created_at', start).lt('created_at', end);
+              })()
+          : q;
+      const paymentQuery = mode === 'today' && bdayId
+        ? client.from('payment')
+            .select('method, amount_ugx, status')
+            .eq('business_day_id', bdayId)
+            .in('status', ['confirmed', 'recorded', 'reconciled'])
+        : Promise.resolve({ data: [], error: null });
+      const [visitResult, paymentResult] = await Promise.all([visitQuery, paymentQuery]);
+      const { data: allVisitsRaw, error: vErr } = visitResult;
       if (vErr) return fail({ code: 'INTERNAL_ERROR', message: vErr.message });
 
       const mapped: ReceptionQueueItem[] = (allVisitsRaw || []).map((v: any) => {
@@ -1271,24 +1288,22 @@ export class ReceptionOperationsRepository {
       });
 
       // Active tab: queued, in_service, payment_pending
-      const active = mapped.filter((v) =>
-        ['queued', 'in_service', 'payment_pending'].includes(v.status)
-      );
+      const active = mode === 'current'
+        ? mapped.filter((v) => ['queued', 'in_service', 'payment_pending'].includes(v.status))
+        : [];
 
       // Completed today tab: status in paid or closed, AND matches today's business day (or today's date if no open day)
-      const completedToday = mapped.filter((v) => {
-        const isDone = ['paid', 'closed'].includes(v.status);
-        if (!isDone) return false;
-        if (bdayId) {
-          const raw = allVisitsRaw.find((x: any) => x.id === v.id);
-          return raw?.business_day_id === bdayId;
-        }
-        const todayStr = new Date().toISOString().split('T')[0];
-        return (v as any).created_at?.startsWith(todayStr);
-      });
+      const completedToday = mode === 'today'
+        ? mapped.filter((v) => {
+            if (!['paid', 'closed'].includes(v.status)) return false;
+            if (bdayId) return allVisitsRaw.some((raw: any) => raw.id === v.id && raw.business_day_id === bdayId);
+            const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Kampala' });
+            return v.created_at?.startsWith(todayStr);
+          })
+        : [];
 
       // History tab: all, filtered by search query and optional date range
-      let history = [...mapped];
+      let history = mode === 'history' ? [...mapped] : [];
       if (search && search.trim()) {
         const term = search.trim().toLowerCase();
         const digits = term.replace(/[^0-9]/g, '');
@@ -1306,20 +1321,12 @@ export class ReceptionOperationsRepository {
       let momo_ugx = 0;
       let paid_count = 0;
 
-      if (bdayId) {
-        const { data: payments } = await client
-          .from('payment')
-          .select('method, amount_ugx, status')
-          .eq('business_day_id', bdayId)
-          .in('status', ['confirmed', 'recorded', 'reconciled']);
-
-        (payments || []).forEach((p: any) => {
-          const amt = Number(p.amount_ugx);
-          paid_count++;
-          if (p.method === 'cash') cash_ugx += amt;
-          else momo_ugx += amt;
-        });
-      }
+      (paymentResult.data || []).forEach((p: any) => {
+        const amt = Number(p.amount_ugx);
+        paid_count++;
+        if (p.method === 'cash') cash_ugx += amt;
+        else momo_ugx += amt;
+      });
 
       return ok({
         active,
