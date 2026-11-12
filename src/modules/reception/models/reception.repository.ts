@@ -1200,11 +1200,7 @@ export class ReceptionOperationsRepository {
   }>> {
     try {
       const client = getServiceRoleClient();
-      const bdayRes = await this.getBusinessDayStatus();
-      const bdayId = bdayRes.success ? bdayRes.data.business_day_id : undefined;
-
-      // Base query for all visits
-      let q = client
+      const q = client
         .from('visit')
         .select(`
           id, ticket_code, status, queued_at, created_at, customer_id, total_list_ugx, total_discount_ugx, total_final_ugx, business_day_id,
@@ -1220,8 +1216,14 @@ export class ReceptionOperationsRepository {
           receipt ( print_count )
         `)
         .order('created_at', { ascending: false });
-
-      const { data: allVisitsRaw, error: vErr } = await q;
+      // The business-day lookup and visit list are independent reads. Start
+      // both together so the first reception render pays one network round trip
+      // instead of waiting for the day lookup before requesting visits.
+      const [bdayRes, { data: allVisitsRaw, error: vErr }] = await Promise.all([
+        this.getBusinessDayStatus(),
+        q,
+      ]);
+      const bdayId = bdayRes.success ? bdayRes.data.business_day_id : undefined;
       if (vErr) return fail({ code: 'INTERNAL_ERROR', message: vErr.message });
 
       const mapped: ReceptionQueueItem[] = (allVisitsRaw || []).map((v: any) => {
