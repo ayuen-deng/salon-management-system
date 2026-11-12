@@ -14,6 +14,8 @@ HR attendance now defers work-hours policy loading until that tab is selected; r
 
 The temporary staging review server has been stopped. Remaining validation is still open for slow protected-route content tails, authenticated revisit/cache isolation, Vercel preview, production telemetry and query plans, dev-versus-production memory/hot reload, and a confirmed GitHub Actions run. No claim that every phase or performance target is complete.
 
+After the 20-run sample, reception’s independent business-day and visit-list reads were also parallelized. TypeScript, targeted ESLint, and 46/46 Vitest tests passed. This final low-risk overlap is not yet represented in the benchmark; measure it in the next staging review session.
+
 ## Remaining performance work
 
 The five-phase performance effort is not fully complete. A 20-run authenticated five-role desktop sample is saved at `artifacts/performance/staging-authenticated-desktop.json`. It showed content p95 misses for manager (3.92 s), HR (10.40 s), receptionist visits (9.83 s), and staff (2.74 s); owner readiness was initially misdetected because its live status dot pulses continuously. The baseline also showed long action tails for reception (4.29 s) and manager (2.33 s).
